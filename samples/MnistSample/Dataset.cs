@@ -6,17 +6,16 @@ using System.Net;
 using System.Text;
 using Network;
 using Network.NeuralMath;
-using Network.NeuralMath.Cpu;
 using Training.Data;
 
-namespace Demo    
+namespace MnistSample    
 {
     public static class Dataset        
     {
         private static string TrainImagesFile = "train-images-idx3-ubyte.gz";
         private static string TrainLabelsFile = "train-labels-idx1-ubyte.gz";
-        private static string TestImagesFile = "train-images-idx3-ubyte.gz";
-        private static string TestLabelsFile = "train-labels-idx1-ubyte.gz";
+        private static string TestImagesFile = "t10k-images-idx3-ubyte.gz";
+        private static string TestLabelsFile = "t10k-labels-idx1-ubyte.gz";
         
         private static void DownloadDataset()
         {
@@ -45,6 +44,7 @@ namespace Demo
                 Console.WriteLine("Downloading testing labels...");
                 client.DownloadFile(address + TestLabelsFile, TestLabelsFile);
             }
+            Console.Clear();
         }
 
         public static List<Example> CreateTrainDataset()
