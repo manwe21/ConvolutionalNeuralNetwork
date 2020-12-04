@@ -6,10 +6,10 @@ namespace Training.Trainers
     {
         public int Epoch { get; set; }
         public int Iteration { get; set; }
-        public int ExamplesPassed { get; set; }
         public TimeSpan IterationTime { get; set; }
-        public int ExamplesPerEpoch { get; set; }
-        public double Accuracy { get; set; }
-        public double Loss { get; set; }
+        public int ExamplesPerEpoch { get; set; }    
+        public int EpochsCount { get; set; }
+        public float Accuracy { get; set; }
+        public float Loss { get; set; }
     }
 }

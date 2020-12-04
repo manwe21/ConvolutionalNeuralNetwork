@@ -78,7 +78,7 @@ namespace Network.NeuralMath
             var tensorType = result.GetType();
             var builder = TensorBuilder.OfType(tensorType);
             Convolution(filters, stride, 0, builder.Empty(), result);
-        }    
+        }
         
         public abstract void Convolution(Tensor filters, int stride, int padding, Tensor img2ColBuffer, Tensor result);
 

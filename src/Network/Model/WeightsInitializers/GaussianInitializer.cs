@@ -16,10 +16,12 @@ namespace Network.Model.WeightsInitializers
 
         public void InitWeights(IParameterizedLayer wLayer)
         {
+            float[] data = new float[wLayer.Weights.Size];
             for (int i = 0; i < wLayer.Weights.Size; i++)
             {
-                wLayer.Weights[i] = (float)RandomUtil.GetGaussian(_mean, _deviation);
+                data[i] = (float)RandomUtil.GetGaussian(_mean, _deviation);
             }
+            wLayer.Weights.Storage.SetData(data);
         }
     }
 }

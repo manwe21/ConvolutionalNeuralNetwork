@@ -83,9 +83,9 @@ namespace Training.Trainers
 
         protected void CorrectWeights()
         {
-            foreach (var weightedLayer in Network.ParameterizedLayers)
+            foreach (var parameterizedLayer in Network.ParameterizedLayers)
             {
-                Optimizer.Correct(weightedLayer.Weights, weightedLayer.WeightsGradient, weightedLayer.Parameters, true, Iteration);
+                Optimizer.Correct(parameterizedLayer.Weights, parameterizedLayer.WeightsGradient, parameterizedLayer.Parameters, true, Iteration);
             }
         }
 

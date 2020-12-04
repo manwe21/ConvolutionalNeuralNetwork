@@ -471,9 +471,9 @@ namespace Network.NeuralMath.Gpu
             var dLoss = lossStorage.DeviceStorage;
 
             //CPU implementation (because of GPU reduction problems)
-            loss[0] = lossFunction.Process(this, correct);
+            //loss[0] = lossFunction.Process(this, correct);
 
-            //_context.Methods.Loss(dO, dT, dLoss, lossFunction, Size);
+            _context.Methods.Loss(dO, dT, dLoss, lossFunction, Size);
         }
 
         public override void LossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy)

@@ -6,6 +6,7 @@ using Network.NeuralMath;
 using Network.NeuralMath.Functions.LossFunctions;
 using Training.Data;
 using Training.Optimizers.Cpu;
+using Training.Optimizers.Gpu;
 using Training.Testers;
 using Training.Trainers;
 using Training.Trainers.EventHandlers;
@@ -13,21 +14,20 @@ using Training.Trainers.Settings;
 
 namespace MnistSample
 {
-    static class Program    
+    static class Program
     {
         private static List<Example> _trainExamples = new List<Example>();
         private static List<Example> _testExamples = new List<Example>();
         
         static void Main(string[] args)
         {
-            Global.ComputationType = ComputationType.Cpu;    //Change this to use Gpu
+            Global.ComputationType = ComputationType.Gpu;    //Change this to use Gpu
             NeuralNetwork network = new NeuralNetwork(new Shape(1, 1, 28, 28));
             IWeightsInitializer weightsInitializer = new HeInitializer();
             network
-                .Conv(16, 3, 1, weightsInitializer)
+                .Conv(64, 3, 1, weightsInitializer)
                 .Relu()
-                .MaxPool(2, 2)
-                .Conv(16, 3, 1, weightsInitializer)
+                .Conv(64, 3, 1, weightsInitializer)
                 .Relu()
                 .MaxPool(2, 2)
                 .Flatten()
@@ -44,9 +44,12 @@ namespace MnistSample
                 EpochsCount = 5,
                 BatchSize = 32,
                 LossFunction = new CrossEntropy(),
-                Optimizer = new CpuAdam(1e-3f)
+                Optimizer = new GpuAdam(1e-3f)
             });
+            
             trainer.AddEventHandler(new ConsoleLogger());
+            
+            
             ITester tester = new ClassificationTester(_testExamples);
             
             //Set release mode for speed improvement

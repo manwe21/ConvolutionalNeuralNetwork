@@ -40,15 +40,7 @@ namespace Network.Model.Layers
             IsInit = true;
         }
 
-        public virtual Tensor Forward(Tensor tensor)
-        {
-            if (!IsInit)
-            {
-                Initialize(tensor.Storage.Shape);
-            }
-
-            return null;
-        }
+        public abstract Tensor Forward(Tensor tensor);
         
         public abstract Tensor Backward(Tensor tensor);
         

@@ -448,12 +448,72 @@ namespace Network.NeuralMath.Cpu
         {
             if (!result.Storage.IsMemoryAllocated)
             {
-                result.Storage.AllocateMemory(Storage.Shape.GetCopy());
+                result.Storage.AllocateMemory(this.Storage.Shape.GetCopy());
             }
 
             for (int i = 0; i < maxIndexes.Size; i++)
             {
                 result[(int)maxIndexes[i]] = dy[i];
+            }
+            
+        }
+
+        public void AveragePool(int poolSize, int stride, Tensor result)
+        {
+            if (!result.Storage.IsMemoryAllocated)
+            {
+                result.Storage.AllocateMemory(GetPoolingShape(Storage.Shape, poolSize, stride));
+            }
+            
+            var countH = result.Height;
+            var countW = result.Width;
+            var countC = countH * countW;
+            var countB = result.Channels * countC;
+
+            var wh = Height * Width;
+            
+            Parallel.For(0, result.Size, i =>
+            {
+                int b = i / countB;
+                int c = i % countB / countC;
+
+                int kernelLocalNum = i % countC;
+
+                int startI = kernelLocalNum / countW * stride;
+                int startJ = kernelLocalNum % countW * stride;
+
+                float avg = 0;
+                for (int ki = startI; ki < startI + poolSize; ki++)
+                {
+                    for (int kj = startJ; kj < startJ + poolSize; kj++)
+                    {
+                        avg += this[b, c, ki, kj];
+                    }
+                }
+
+                result[i] = avg / (poolSize * poolSize);
+            });
+        }
+
+        public void AveragePoolDx(Tensor dy, int poolSize, int stride, Tensor result)
+        {
+            if (!result.Storage.IsMemoryAllocated)
+            {
+                result.Storage.AllocateMemory(this.Storage.Shape.GetCopy());
+            }
+
+            for (int b = 0; b < Batch; b++)
+            {
+                for (int c = 0; c < Channels; c++)
+                {
+                    for (int i = 0; i < dy.Height; i++)
+                    {
+                        for (int j = 0; j < dy.Width; j++)
+                        {
+                            
+                        }
+                    }
+                }
             }
             
         }

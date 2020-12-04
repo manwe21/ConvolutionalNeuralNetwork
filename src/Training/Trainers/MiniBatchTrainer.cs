@@ -35,7 +35,7 @@ namespace Training.Trainers
             {
                 var examplesPassed = 0;
                 Iteration = 1;
-                double loss = 0;
+                float loss = 0;
                 var correct = 0;
                 
                 foreach (var example in TrainingExamples)
@@ -48,19 +48,18 @@ namespace Training.Trainers
                     if (CheckModelOnCorrectOutput(example.Output))
                        correct++;
                     examplesPassed++;
-                    
                     if (examplesPassed % BatchSize == 0)
-                    {  
+                    {
                         CorrectWeights();
                         var result = new IterationResult
                         {
                             Epoch = this.Epoch,
-                            ExamplesPassed = examplesPassed,
                             Iteration = this.Iteration,
                             IterationTime = sw.Elapsed,
                             ExamplesPerEpoch = examplesPerEpoch,
                             Loss = loss / BatchSize,
-                            Accuracy = (double) correct / BatchSize
+                            Accuracy = (float) correct / BatchSize,
+                            EpochsCount = this.EpochsCount
                         };
                         RaiseIterationFinishedEvent(result);
                         loss = 0;
