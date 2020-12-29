@@ -113,8 +113,8 @@ namespace Network.NeuralMath
             Softmax(result, TensorBuilder.OfType(result.GetType()).Empty());    
         }
         
-        public abstract void Softmax(Tensor result, Tensor maxBuffer);        
-        public abstract void SoftmaxDx(Tensor dy, Tensor dx);    
+        public abstract void Softmax(Tensor result, Tensor maxBuffer);
+        public abstract void SoftmaxDx(Tensor dy, Tensor dx);
 
         public abstract void Loss(Tensor correct, ILossFunction lossFunction, Tensor loss);
         public abstract void LossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy);
@@ -126,10 +126,10 @@ namespace Network.NeuralMath
         {
             return new Shape
             (
-                input.Dimensions[0],
-                filters.Dimensions[0],
-                (input.Dimensions[2] - filters.Dimensions[2] + 2 * padding) / stride + 1,
-                (input.Dimensions[3] - filters.Dimensions[3] + 2 * padding) / stride + 1
+                input[0],
+                filters[0],
+                (input[2] - filters[2] + 2 * padding) / stride + 1,
+                (input[3] - filters[3] + 2 * padding) / stride + 1
             );
         }
 
@@ -137,10 +137,10 @@ namespace Network.NeuralMath
         {
             return new Shape
             (
-                input.Dimensions[0],
-                input.Dimensions[1],
-                (input.Dimensions[2] - poolSize) / stride + 1,
-                (input.Dimensions[3] - poolSize) / stride + 1
+                input[0],
+                input[1],
+                (input[2] - poolSize) / stride + 1,
+                (input[3] - poolSize) / stride + 1
             );
         }
 
@@ -153,10 +153,10 @@ namespace Network.NeuralMath
         {
             return new Shape
             (
-                input.Dimensions[0],
                 1,
-                kernelH * kernelW * input.Dimensions[1],
-                ((input.Dimensions[2] - kernelH) / stride + 1) * ((input.Dimensions[3] - kernelW) / stride + 1)
+                1,
+                kernelH * kernelW * input[1],
+                ((input[2] - kernelH) / stride + 1) * ((input[3] - kernelW) / stride + 1) * input[0]
             );
         }
 
@@ -164,21 +164,21 @@ namespace Network.NeuralMath
         {
             return new Shape
             (
-                input.Dimensions[0],
-                input.Dimensions[1],
-                input.Dimensions[2] + padding * 2,
-                input.Dimensions[3] + padding * 2
+                input[0],
+                input[1],
+                input[2] + padding * 2,
+                input[3] + padding * 2
             );
         }
 
         public static Shape GetDot2DShape(Shape a, Shape b)
         {
-            return new Shape(a.Dimensions[0], 1, a.Dimensions[2], b.Dimensions[3]);
+            return new Shape(a[0], 1, a[2], b[3]);
         }
 
         public static Shape GetDot2DTransAShape(Shape a, Shape b)
         {
-            return new Shape(a.Dimensions[0], 1, a.Dimensions[3], b.Dimensions[3]);
+            return new Shape(a[0], 1, a[3], b[3]);
         }
 
         public override string ToString()

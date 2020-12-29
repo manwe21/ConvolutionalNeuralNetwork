@@ -11,7 +11,7 @@ namespace Network.NeuralMath.Functions.LossFunctions
             {
                 sum += MathF.Pow(output[i] - correct[i], 2);
             }
-            return sum / 2;
+            return sum / output.Size;
         }
 
         public float Derivative(float o, float t)

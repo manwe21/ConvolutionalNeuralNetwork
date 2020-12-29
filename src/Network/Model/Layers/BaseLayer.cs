@@ -24,7 +24,7 @@ namespace Network.Model.Layers
         
         protected BaseLayer()
         {
-            Builder = TensorBuilder.Create(Global.ComputationType);
+            Builder = TensorBuilder.Create();
             Output = Builder.Empty();
             InputGradient = Builder.Empty();
         }
@@ -34,7 +34,7 @@ namespace Network.Model.Layers
             InputShape = new Shape(info.InputShape.B, info.InputShape.C, info.InputShape.H, info.InputShape.W);
             OutputShape = new Shape(info.OutputShape.B, info.OutputShape.C, info.OutputShape.H, info.OutputShape.W);
             
-            Builder = TensorBuilder.Create(Global.ComputationType);
+            Builder = TensorBuilder.Create();
             Output = Builder.Empty();
             InputGradient = Builder.Empty();
             IsInit = true;

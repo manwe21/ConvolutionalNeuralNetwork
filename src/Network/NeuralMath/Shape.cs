@@ -14,8 +14,10 @@ namespace Network.NeuralMath
            [3] - Width of image
         */
         
-        public int[] Dimensions { get; }
+        private int[] Dimensions { get; }
         public int Size { get; }
+        
+        public int this[int i] => Dimensions[i];
 
         public Shape(int b, int c, int h, int w)
         {

@@ -21,9 +21,9 @@ namespace Network.NeuralMath
             return null;
         }
 
-        public static TensorBuilder Create(ComputationType compType)
+        public static TensorBuilder Create()
         {
-            if (compType == ComputationType.Cpu)
+            if (Global.ComputationType == ComputationType.Cpu)
                 return new CpuBuilder();
             return new GpuBuilder();
         }

@@ -17,10 +17,10 @@ namespace Network.NeuralMath
             set
             {
                 _shape = value;
-                Batch = _shape.Dimensions[0];
-                Channels = _shape.Dimensions[1];
-                Height = _shape.Dimensions[2];
-                Width = _shape.Dimensions[3];
+                Batch = _shape[0];
+                Channels = _shape[1];
+                Height = _shape[2];
+                Width = _shape[3];
                 Size = _shape.Size;
 
                 Hw = Height * Width;

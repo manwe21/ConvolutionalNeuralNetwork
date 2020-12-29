@@ -5,15 +5,9 @@ namespace Network.Model.Layers
 {
     public class FlattenLayer : BaseLayer
     {
-        public FlattenLayer()
-        {
-            
-        }
+        public FlattenLayer() { }
 
-        public FlattenLayer(LayerInfo info) : base(info)
-        {
-            
-        }
+        public FlattenLayer(LayerInfo info) : base(info) { }
         
         public override void Initialize(Shape inputShape)
         {

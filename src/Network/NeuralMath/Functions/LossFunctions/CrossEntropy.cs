@@ -19,7 +19,7 @@ namespace Network.NeuralMath.Functions.LossFunctions
         //Single.Epsilon does not help (1 / Epsilon = +infinity)
         public float Derivative(float o, float t)
         {
-            return -t / o;
+            return -t/* / o*/;
         }
     }
 }

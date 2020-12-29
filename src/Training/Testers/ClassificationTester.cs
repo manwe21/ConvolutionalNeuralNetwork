@@ -24,8 +24,8 @@ namespace Training.Testers
         public TestResult TestModel(NeuralNetwork network)    
         {
             var result = new TestResult();
-            var max1 = TensorBuilder.Create(Global.ComputationType).Empty();
-            var max2 = TensorBuilder.Create(Global.ComputationType).Empty();
+            var max1 = TensorBuilder.Create().Empty();
+            var max2 = TensorBuilder.Create().Empty();
             foreach (var example in _testExamples)
             {
                 network.Forward(example.Input);
@@ -36,7 +36,6 @@ namespace Training.Testers
                 else result.Failed++;
                 result.TotalTests++;
                 result.SuccessfulRatio = (float)result.Successful/result.TotalTests;
-                Console.WriteLine(result);
             }
             return result;
         }

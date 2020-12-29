@@ -82,7 +82,7 @@ namespace Network.Model.Layers
         public override void Initialize(Shape inputShape)
         {
             base.Initialize(inputShape);
-            Weights = Builder.OfShape(new Shape(FiltersCount, inputShape.Dimensions[1], KernelSize, KernelSize));
+            Weights = Builder.OfShape(new Shape(FiltersCount, inputShape[1], KernelSize, KernelSize));
             _initializer.InitWeights(this);
             OutputShape = Tensor.GetConvolutionalShape(inputShape, Weights.Storage.Shape, Stride, 0);
             WeightsGradient = Builder.OfShape(Weights.Storage.Shape);
