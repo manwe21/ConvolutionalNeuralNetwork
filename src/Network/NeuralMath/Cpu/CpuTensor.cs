@@ -277,21 +277,17 @@ namespace Network.NeuralMath.Cpu
             {
                 result.Storage.AllocateMemory(Storage.Shape.GetCopy());
             }
-            
-            for (int b = 0; b < Batch; b++)
+
+            int sectorSize = Height * Width;
+            int sectorsCount = Batch * Channels;
+            for (int i = 0; i < Size; i++)
             {
-                for (int c = 0; c < Channels; c++)
-                {
-                    for (int i = 0; i < Height; i++)
-                    {
-                        for (int j = 0; j < Width; j++)
-                        {
-                            result[b, c, i, j] = this[b, c, Height - i - 1, Width - j - 1];
-                        }
-                    }
-                }
+                int localI = i % sectorSize;
+                int sectorI = i / sectorsCount;
+
+                result[i] = this[sectorI * sectorSize + sectorSize - localI - 1];
+
             }
-            
         }
 
         public override void Img2Col(int kernelH, int kernelW, int stride, Tensor result)
@@ -507,14 +503,21 @@ namespace Network.NeuralMath.Cpu
                 dx.Storage.AllocateMemory(new Shape(Batch, Channels, Height, Width));
             }
             
+            // if (!reshapedWBuffer.Storage.IsMemoryAllocated)
+            // {
+            //     reshapedWBuffer.Storage.AllocateMemory(new Shape(1, 1, filters.Batch * filters.Height * filters.Width, filters.Channels));
+            // }
             if (!reshapedWBuffer.Storage.IsMemoryAllocated)
             {
-                reshapedWBuffer.Storage.AllocateMemory(new Shape(1, 1, filters.Batch * filters.Height * filters.Width, filters.Channels));
+                reshapedWBuffer.Storage.AllocateMemory(new Shape(1, 1, filters.Channels, filters.Batch * filters.Height * filters.Width));
             }
             
             dy.Pad(Width - dy.Width, paddingBuffer);
             paddingBuffer.Img2Col(filters.Height, filters.Width, 1, img2ColBuffer);
-
+            
+            var res = new CpuTensor();
+            filters.Rotate180(res);
+            
             for (int c = 0; c < filters.Channels; c++)
             {
                 var wI = 0;
@@ -524,14 +527,32 @@ namespace Network.NeuralMath.Cpu
                     {    
                         for (int j = 0; j < filters.Width; j++)
                         {
-                            reshapedWBuffer[wI, c] = filters[b, c, i, j];
+                            reshapedWBuffer[c, wI] = res[b, c, i, j];
                             wI++;
                         }
                     }
                 }
             }
+            //reshapedWBuffer.Rotate180(res);
+            // for (int c = 0; c < filters.Channels; c++)
+            // {
+            //     var wI = 0;
+            //     for (int b = 0; b < filters.Batch; b++)
+            //     {
+            //         for (int i = 0; i < filters.Height; i++)
+            //         {    
+            //             for (int j = 0; j < filters.Width; j++)
+            //             {
+            //                 reshapedWBuffer[wI, c] = filters[b, c, i, j];
+            //                 wI++;
+            //             }
+            //         }
+            //     }
+            // }
+            
 
-            img2ColBuffer.DotTransA2D(reshapedWBuffer, dotBuffer);
+            //img2ColBuffer.DotTransA2D(reshapedWBuffer, dotBuffer);
+            reshapedWBuffer.Dot2D(img2ColBuffer, dotBuffer); 
             dx.Storage.SetData(dotBuffer.Storage.Array);
         }
 

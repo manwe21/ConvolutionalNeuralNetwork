@@ -176,7 +176,18 @@ namespace Network.NeuralMath.Gpu
 
         public override void Rotate180(Tensor result)
         {
-            throw new System.NotImplementedException();
+            if(!(result.Storage is GpuStorage resStorage))
+                throw new ArgumentException($"{ nameof(result) } has unsupported storage type");
+            
+            if (!result.Storage.IsMemoryAllocated)
+            {
+                result.Storage.AllocateMemory(this.Storage.Shape);
+            }
+
+            var dX = _storage.DeviceStorage;
+            var dRes = resStorage.DeviceStorage;
+            
+            _context.Methods.Rotate180(dX, dRes, this.Storage.Descriptor);
         }
 
         public override void Img2Col(int kernelH, int kernelW, int stride, Tensor result)
@@ -282,6 +293,34 @@ namespace Network.NeuralMath.Gpu
             
             if (!filters2DBuffer.Storage.IsMemoryAllocated)
             {
+                filters2DBuffer.Storage.AllocateMemory(new Shape(1, 1, filters.Channels, filters.Batch * filters.Height * filters.Width));
+            }
+            
+            dy.Pad(Width - dy.Width, paddingBuffer);
+            paddingBuffer.Img2Col(filters.Height, filters.Width, 1, img2ColBuffer);
+            var wRot = new GpuTensor();
+            filters.Rotate180(wRot);
+            
+            var dW = (wRot.Storage as GpuStorage).DeviceStorage;
+            var dW2D = wByChannelsStorage.DeviceStorage;
+            
+            _storage.Context.Methods.WToRow(dW, dW2D, filters.Size, filters.Storage.Descriptor, filters2DBuffer.Storage.Descriptor);
+            filters2DBuffer.Dot2D(img2ColBuffer, dot2DBuffer);
+            resStorage.SetData((dot2DBuffer.Storage as GpuStorage)?.DeviceStorage);
+            /*if(!(filters.Storage is GpuStorage wStorage))
+                throw new ArgumentException($"{ nameof(filters) } has unsupported storage type");
+            if(!(filters2DBuffer.Storage is GpuStorage wByChannelsStorage))
+                throw new ArgumentException($"{ nameof(filters2DBuffer) } has unsupported storage type");
+            if(!(dx.Storage is GpuStorage resStorage))
+                throw new ArgumentException($"{ nameof(dx) } has unsupported storage type");
+            
+            if (!dx.Storage.IsMemoryAllocated)
+            {
+                dx.Storage.AllocateMemory(new Shape(Batch, Channels, Height, Width));
+            }
+            
+            if (!filters2DBuffer.Storage.IsMemoryAllocated)
+            {
                 filters2DBuffer.Storage.AllocateMemory(new Shape(1, 1, filters.Batch * filters.Height * filters.Width, filters.Channels));
             }
             
@@ -294,7 +333,7 @@ namespace Network.NeuralMath.Gpu
             _context.Methods.VerticalReshape2(dW, dW2D, filters.Storage.Descriptor, filters2DBuffer.Storage.Descriptor, filters2DBuffer.Size);
             img2ColBuffer.DotTransA2D(filters2DBuffer, dot2DBuffer);
             
-            resStorage.SetData((dot2DBuffer.Storage as GpuStorage)?.DeviceStorage);
+            resStorage.SetData((dot2DBuffer.Storage as GpuStorage)?.DeviceStorage);*/
         }
 
         public override void ConvolutionDw(Tensor filters, Tensor dy, Tensor dy2DBuffer, Tensor dot2DBuffer, Tensor img2ColX,
@@ -421,12 +460,12 @@ namespace Network.NeuralMath.Gpu
             float[] x = dX;
             float max = x.Max();
             var denominator = 0.0f;
-
+            
             for (int i = 0; i < Size; i++)
             {
                 denominator += MathF.Exp(x[i] - max);
             }
-
+            
             for (int i = 0; i < result.Size; i++)
             {
                 result[i] = MathF.Exp(x[i] - max) / denominator;
@@ -471,9 +510,9 @@ namespace Network.NeuralMath.Gpu
             var dLoss = lossStorage.DeviceStorage;
 
             //CPU implementation (because of GPU reduction problems)
-            //loss[0] = lossFunction.Process(this, correct);
+            loss[0] = lossFunction.Process(this, correct);
 
-            _context.Methods.Loss(dO, dT, dLoss, lossFunction, Size);
+            //_context.Methods.Loss(dO, dT, dLoss, lossFunction, Size);
         }
 
         public override void LossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy)
