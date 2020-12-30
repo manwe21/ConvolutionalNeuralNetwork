@@ -236,15 +236,12 @@ namespace CpuTensorTests
             float[] xData = { 0.2f, 11, 2.8f, 3, 4.1f, 5, 1, 2.2f, 4, 1.8f, 5, 8, 2, 2.1f, 0, 0.4f, 0.9f, 0 };
             float[] wData = { 0.1f, 2, 3.5f, 6, 4, 8.8f, 1.3f, 4.8f, 1, 0, 5, 0, 0, 3.5f, 4, 0.5f };
             float[] dyData = { 10, 1.1f, 6.5f, 1.6f, 4.7f, 7.9f, 7.4f, 8.7f };
-            float[] dxExp = { 60, 50.35f, 65.1f, 41.03f, 43.35f, 33.03f, 59, 139.35f, 77.25f, 127.41f, 57.11f, 41.28f, 13, 83.1f, 11.25f, 70.53f, 8.86f, 6.4f };
+            float[] dxExp = { 5.69999f, 28.01f, 2.2f, 66.55f, 125.21f, 9.8f, 59.75f, 88.0999f, 9.6f, 40f, 108.84999f, 37.33f, 57.7999f, 172.88f, 53.76f, 38.049999f, 71.77999f, 12.03f };
 
             Tensor x = CreateTensor(xShape, xData);
             Tensor w = CreateTensor(wShape, wData);
             Tensor dy = CreateTensor(dyShape, dyData);
             Tensor dx = CreateTensor();
-            //Tensor dw = new CpuTensor();
-            //Tensor img2ColX = new CpuTensor();    
-            //x.Img2Col(2, 2, 1, img2ColX);
             
             x.ConvolutionDx(w, dy, dx);
             
