@@ -16,9 +16,9 @@ namespace Network.Model.WeightsInitializers
         
         public void InitWeights(IParameterizedLayer wLayer)
         {
-            for (int i = 0; i < wLayer.Weights.Size; i++)
+            for (int i = 0; i < wLayer.ParametersStorage.Weights.Size; i++)
             {
-                wLayer.Weights[i] = (float)RandomUtil.GetRandomNumber(_minValue, _maxValue);
+                wLayer.ParametersStorage.Weights[i] = (float)RandomUtil.GetRandomNumber(_minValue, _maxValue);
             }
         }
         

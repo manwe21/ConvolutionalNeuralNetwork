@@ -68,7 +68,19 @@ namespace Network.NeuralMath.Gpu
                 x.DevicePointer,
                 value,
                 size);
-        }    
+        }
+
+        public void Rotate180(CudaDeviceVariable<float> x, CudaDeviceVariable<float> res, TensorDescriptor xDesc)
+        {
+            _kernelManager.LaunchKernel("rotate180",
+                xDesc.Size,
+                0,
+                x.DevicePointer,
+                res.DevicePointer,
+                xDesc,
+                xDesc.Size
+                );
+        }
 
         public void Img2Col2(
             CudaDeviceVariable<float> x,
@@ -167,6 +179,18 @@ namespace Network.NeuralMath.Gpu
                 resH,
                 resW,
                 size);
+        }
+
+        public void WToRow(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, int size, TensorDescriptor xDesc, TensorDescriptor resDesc)
+        {
+            _kernelManager.LaunchKernel("weightsToRow",
+                x.Size,
+                0,
+                x.DevicePointer,
+                result.DevicePointer,
+                x.Size,
+                xDesc,
+                resDesc);
         }
         
         public void HorizontalReshape2(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, TensorDescriptor xDesc, TensorDescriptor resDesc, int size)

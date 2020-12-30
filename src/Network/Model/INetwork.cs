@@ -7,10 +7,9 @@ namespace Network.Model
     public interface INetwork
     {
         Tensor Forward(Tensor x);
-        void Backward(Tensor dy);
+        void Backward(Tensor dy);   
         Tensor Output { get; }
-        
-        //TODO Need to change this for work with more abstract network
-        List<IParameterizedLayer> ParameterizedLayers { get; }
+
+        IEnumerable<ParametersStorage> GetParameters();
     }
-} 
+}

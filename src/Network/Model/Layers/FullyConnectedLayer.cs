@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text.Json;
 using Network.Model.WeightsInitializers;
 using Network.NeuralMath;
 using Network.Serialization;
@@ -11,15 +9,11 @@ namespace Network.Model.Layers
     {
         private readonly IWeightsInitializer _initializer;
         public int NeuronsCount { get; }
-        public Tensor Weights { get; private set; }
-        public Tensor Biases { get; private set; }
-        public Tensor WeightsGradient { get; private set; }
-        public int FIn => InputShape.Dimensions[3];
+        public ParametersStorage ParametersStorage { get; set; } = new ParametersStorage();
+        public int FIn => InputShape[3];
         public int FOut => NeuronsCount;
 
         private Tensor _iterationDw;
-        
-        public Dictionary<string, Tensor> Parameters { get; set; }
         
         public FullyConnectedLayer(int neuronsCount, IWeightsInitializer initializer)
         {
@@ -40,10 +34,10 @@ namespace Network.Model.Layers
                 throw new ArgumentException(nameof(info));
             
             var wShape = new Shape(fullyLayerInfo.WeightsShape.B, fullyLayerInfo.WeightsShape.C, fullyLayerInfo.WeightsShape.H, fullyLayerInfo.WeightsShape.W);
-            Weights = Builder.OfShape(wShape);
-            Weights.Storage.SetData(fullyLayerInfo.Weights);
+            ParametersStorage.Weights = Builder.OfShape(wShape);
+            ParametersStorage.Weights.Storage.SetData(fullyLayerInfo.Weights);
             
-            WeightsGradient = Builder.OfShape(wShape.GetCopy());
+            ParametersStorage.Gradients = Builder.OfShape(wShape.GetCopy());
             _iterationDw = Builder.OfShape(wShape.GetCopy());
             
             _initializer = new HeInitializer();
@@ -53,13 +47,13 @@ namespace Network.Model.Layers
         {
             base.Initialize(inputShape);
 
-            Weights = Builder.OfShape(new Shape(1, 1, inputShape.Dimensions[3], NeuronsCount));
+            ParametersStorage.Weights = Builder.OfShape(new Shape(1, 1, inputShape[3], NeuronsCount));
             _initializer.InitWeights(this);
             
-            WeightsGradient = Builder.OfShape(new Shape(1, 1, inputShape.Dimensions[3], NeuronsCount));
-            _iterationDw = Builder.OfShape(new Shape(1, 1, inputShape.Dimensions[3], NeuronsCount));
+            ParametersStorage.Gradients = Builder.OfShape(new Shape(1, 1, inputShape[3], NeuronsCount));
+            _iterationDw = Builder.OfShape(new Shape(1, 1, inputShape[3], NeuronsCount));
             
-            OutputShape = new Shape(inputShape.Dimensions[0], 1, 1, NeuronsCount);
+            OutputShape = new Shape(inputShape[0], 1, 1, NeuronsCount);
         }
 
         public override LayerInfo GetLayerInfo()
@@ -67,15 +61,15 @@ namespace Network.Model.Layers
             var layerInfo = base.GetLayerInfo();
             return new ParameterizedLayerInfo(layerInfo)
             {
-                WeightsShape = new ShapeInfo(Weights.Storage.Shape),
-                Weights = Weights.Storage.Array
+                WeightsShape = new ShapeInfo(ParametersStorage.Weights.Storage.Shape),
+                Weights = ParametersStorage.Weights.Storage.Array
             };
         }
 
         public override Tensor Forward(Tensor tensor)
         {
             Input = tensor;
-            Input.Dot2D(Weights, Output);
+            Input.Dot2D(ParametersStorage.Weights, Output);
             return Output;
         }
 
@@ -83,10 +77,10 @@ namespace Network.Model.Layers
         {
             OutputGradient = tensor;
             Input.FullyConnectedDw(OutputGradient, _iterationDw);
-            WeightsGradient.Sum(_iterationDw);
+            ParametersStorage.Gradients.Sum(_iterationDw);
             if (Prev != null)
             {
-                Input.FullyConnectedDx(Weights, OutputGradient, InputGradient);
+                Input.FullyConnectedDx(ParametersStorage.Weights, OutputGradient, InputGradient);
                 return InputGradient;
             }
 

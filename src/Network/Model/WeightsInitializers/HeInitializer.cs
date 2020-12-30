@@ -10,13 +10,13 @@ namespace Network.Model.WeightsInitializers
         public void InitWeights(IParameterizedLayer wLayer)
         {   
             var variance = 2.0 / wLayer.FIn;
-            float[] data = new float[wLayer.Weights.Size];
-            for (int i = 0; i < wLayer.Weights.Size; i++)
+            float[] data = new float[wLayer.ParametersStorage.Weights.Size];
+            for (int i = 0; i < wLayer.ParametersStorage.Weights.Size; i++)
             {
                 data[i] = (float)RandomUtil.GetGaussian(0, Math.Sqrt(variance));
             }
             
-            wLayer.Weights.Storage.SetData(data);
+            wLayer.ParametersStorage.Weights.Storage.SetData(data);
         }
     }
 }

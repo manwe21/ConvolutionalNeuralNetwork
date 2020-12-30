@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using Network.Model.WeightsInitializers;
 using Network.NeuralMath;
 using Network.Serialization;
@@ -14,17 +13,9 @@ namespace Network.Model.Layers
         public int FiltersCount { get; }
         public int KernelSize { get; }
         public int Stride { get; }
-        
-        public Tensor Weights { get; private set; }
-        public Tensor Biases { get; private set; }
-        public Tensor WeightsGradient { get; set; }
-        
-        public int FIn => Weights.Channels * KernelSize * KernelSize;
-        public int FOut => Weights.Batch * KernelSize * KernelSize;
-        
-        public Dictionary<string, Tensor> Parameters { get; set; }
-
-        //Memory buffers for intermediate computations
+        public ParametersStorage ParametersStorage { get; set; } = new ParametersStorage();
+        public int FIn => ParametersStorage.Weights.Channels * KernelSize * KernelSize;
+        public int FOut => ParametersStorage.Weights.Batch * KernelSize * KernelSize;
         
         private Tensor _iterationDw;
         
@@ -69,9 +60,9 @@ namespace Network.Model.Layers
             Stride = convLayerInfo.Stride;
             KernelSize = convLayerInfo.KernelSize;
             
-            Weights = Builder.OfShape(wShape);
-            Weights.Storage.SetData(convLayerInfo.Weights);
-            WeightsGradient = Builder.OfShape(wShape.GetCopy());
+            ParametersStorage.Weights = Builder.OfShape(wShape);
+            ParametersStorage.Weights.Storage.SetData(convLayerInfo.Weights);
+            ParametersStorage.Gradients = Builder.OfShape(wShape.GetCopy());
             _iterationDw = Builder.OfShape(wShape.GetCopy());
             
             _initializer = new HeInitializer();
@@ -82,11 +73,11 @@ namespace Network.Model.Layers
         public override void Initialize(Shape inputShape)
         {
             base.Initialize(inputShape);
-            Weights = Builder.OfShape(new Shape(FiltersCount, inputShape[1], KernelSize, KernelSize));
+            ParametersStorage.Weights = Builder.OfShape(new Shape(FiltersCount, inputShape[1], KernelSize, KernelSize));
             _initializer.InitWeights(this);
-            OutputShape = Tensor.GetConvolutionalShape(inputShape, Weights.Storage.Shape, Stride, 0);
-            WeightsGradient = Builder.OfShape(Weights.Storage.Shape);
-            _iterationDw = Builder.OfShape(Weights.Storage.Shape);
+            OutputShape = Tensor.GetConvolutionalShape(inputShape, ParametersStorage.Weights.Storage.Shape, Stride, 0);
+            ParametersStorage.Gradients = Builder.OfShape(ParametersStorage.Weights.Storage.Shape);
+            _iterationDw = Builder.OfShape(ParametersStorage.Weights.Storage.Shape);
             InitializeBuffers();
         }
 
@@ -111,27 +102,27 @@ namespace Network.Model.Layers
                 FiltersCount = this.FiltersCount,
                 Stride = this.Stride,
                 KernelSize = this.KernelSize,
-                WeightsShape = new ShapeInfo(Weights.Storage.Shape),
-                Weights = Weights.Storage.Array
+                WeightsShape = new ShapeInfo(ParametersStorage.Weights.Storage.Shape),
+                Weights = ParametersStorage.Weights.Storage.Array
             };
         }
 
         public override Tensor Forward(Tensor tensor)
         {
             Input = tensor;
-            Input.Convolution(Weights, Stride, 0, _img2ColBuffer, Output);
+            Input.Convolution(ParametersStorage.Weights, Stride, 0, _img2ColBuffer, Output);
             return Output;
         }
 
         public override Tensor Backward(Tensor tensor)
         {
             OutputGradient = tensor;
-            Input.ConvolutionDw(Weights, OutputGradient, _dy2DBuffer, _dwDotBuffer, _img2ColBuffer, _iterationDw);
-            WeightsGradient.Sum(_iterationDw);
+            Input.ConvolutionDw(ParametersStorage.Weights, OutputGradient, _dy2DBuffer, _dwDotBuffer, _img2ColBuffer, _iterationDw);
+            ParametersStorage.Gradients.Sum(_iterationDw);
             
             if (Prev != null)    
             {
-                Input.ConvolutionDx(Weights, OutputGradient, _paddingBuffer, _img2ColDxBuffer, _filters2DBuffer, _dxDotBuffer, InputGradient);
+                Input.ConvolutionDx(ParametersStorage.Weights, OutputGradient, _paddingBuffer, _img2ColDxBuffer, _filters2DBuffer, _dxDotBuffer, InputGradient);
                 return InputGradient;
             }
             return null;
