@@ -24,7 +24,7 @@ namespace Training.Trainers.EventHandlers
             Console.Write(" - ");
             Console.Write($"{_elapsed / result.Iteration} ms/step");
             Console.Write(" - ");
-            Console.Write($"accuracy: {_accuracy / result.Iteration:0.0000}");
+            Console.Write($"metric: {_accuracy / result.Iteration:0.0000}");
             Console.Write(" - ");
             Console.Write($"loss: {_loss / result.Iteration:0.0000}");
         }

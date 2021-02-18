@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Network.Model.WeightsInitializers;
 using Network.NeuralMath;
 using Network.Serialization;
@@ -17,15 +16,15 @@ namespace Network.Model.Layers
         public int FIn => ParametersStorage.Weights.Channels * KernelSize * KernelSize;
         public int FOut => ParametersStorage.Weights.Batch * KernelSize * KernelSize;
         
-        private Tensor _iterationDw;
-        
         //forward pass
         private Tensor _img2ColBuffer;
+        private Tensor _dotBuffer;
         
         //dx
         private Tensor _paddingBuffer;
         private Tensor _img2ColDxBuffer;
         private Tensor _filters2DBuffer;
+        private Tensor _rotBuffer;
         private Tensor _dxDotBuffer;
         
         //dw
@@ -61,9 +60,8 @@ namespace Network.Model.Layers
             KernelSize = convLayerInfo.KernelSize;
             
             ParametersStorage.Weights = Builder.OfShape(wShape);
-            ParametersStorage.Weights.Storage.SetData(convLayerInfo.Weights);
+            ParametersStorage.Weights.Storage.Data = convLayerInfo.Weights;
             ParametersStorage.Gradients = Builder.OfShape(wShape.GetCopy());
-            _iterationDw = Builder.OfShape(wShape.GetCopy());
             
             _initializer = new HeInitializer();
             
@@ -77,17 +75,18 @@ namespace Network.Model.Layers
             _initializer.InitWeights(this);
             OutputShape = Tensor.GetConvolutionalShape(inputShape, ParametersStorage.Weights.Storage.Shape, Stride, 0);
             ParametersStorage.Gradients = Builder.OfShape(ParametersStorage.Weights.Storage.Shape);
-            _iterationDw = Builder.OfShape(ParametersStorage.Weights.Storage.Shape);
             InitializeBuffers();
         }
 
         private void InitializeBuffers()
         {
             _img2ColBuffer = Builder.Empty();
+            _dotBuffer = Builder.Empty();
                 
             _paddingBuffer = Builder.Empty();
             _img2ColDxBuffer = Builder.Empty();
             _dxDotBuffer = Builder.Empty();
+            _rotBuffer = Builder.Empty();
             _filters2DBuffer = Builder.Empty();
                 
             _dy2DBuffer = Builder.Empty();
@@ -103,34 +102,27 @@ namespace Network.Model.Layers
                 Stride = this.Stride,
                 KernelSize = this.KernelSize,
                 WeightsShape = new ShapeInfo(ParametersStorage.Weights.Storage.Shape),
-                Weights = ParametersStorage.Weights.Storage.Array
+                Weights = ParametersStorage.Weights.Storage.Data
             };
         }
 
         public override Tensor Forward(Tensor tensor)
         {
             Input = tensor;
-            Input.Convolution(ParametersStorage.Weights, Stride, 0, _img2ColBuffer, Output);
+            Input.Convolution(ParametersStorage.Weights, Stride, 0, _img2ColBuffer, _dotBuffer, Output);
             return Output;
         }
 
         public override Tensor Backward(Tensor tensor)
         {
             OutputGradient = tensor;
-            Input.ConvolutionDw(ParametersStorage.Weights, OutputGradient, _dy2DBuffer, _dwDotBuffer, _img2ColBuffer, _iterationDw);
-            ParametersStorage.Gradients.Sum(_iterationDw);
-            
+            Input.ConvolutionDw(ParametersStorage.Weights, OutputGradient, _dy2DBuffer, _dwDotBuffer, _img2ColBuffer, ParametersStorage.Gradients);
             if (Prev != null)    
             {
-                Input.ConvolutionDx(ParametersStorage.Weights, OutputGradient, _paddingBuffer, _img2ColDxBuffer, _filters2DBuffer, _dxDotBuffer, InputGradient);
+                Input.ConvolutionDx(ParametersStorage.Weights, OutputGradient, _paddingBuffer, _img2ColDxBuffer, _filters2DBuffer, _rotBuffer, _dxDotBuffer, InputGradient);
                 return InputGradient;
             }
             return null;
-        }
-
-        public static ConvolutionLayer LoadLayer(Dictionary<string, float> layerData)
-        {
-            return new ConvolutionLayer(1, 1, 1);
         }
         
     }

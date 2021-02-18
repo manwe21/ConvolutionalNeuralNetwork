@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Network.NeuralMath;
-using Training.Trainers;
 
 namespace Training.Optimizers
 {
@@ -13,8 +12,11 @@ namespace Training.Optimizers
         {
             LearningRate = learningRate;
         }
-        
-        public float LearningRate { get; }
+
+        public float LearningRate
+        {
+            get;
+        }
         
         public abstract void Correct(Tensor weights, Tensor gradients, Dictionary<string, Tensor> parameters,
             bool resetDw, int iteration);

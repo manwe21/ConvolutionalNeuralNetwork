@@ -2,7 +2,7 @@
 {
     public interface ILossFunction
     {    
-        float Process(Tensor output, Tensor correct);
-        float Derivative(float o, float t);
+        void Process(Tensor output, Tensor correct, Tensor loss);
+        void Derivative(Tensor o, Tensor t, Tensor dy);
     }
-}    
+}

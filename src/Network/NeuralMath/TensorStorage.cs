@@ -1,5 +1,4 @@
 ﻿using System;
-using ManagedCuda;
 
 namespace Network.NeuralMath
 {
@@ -7,7 +6,7 @@ namespace Network.NeuralMath
     {
         private Shape _shape;
         
-        public abstract float[] Array { get; }
+        public abstract float[] Data { get; set; }
         
         public bool IsMemoryAllocated { get; protected set; }
 
@@ -16,6 +15,13 @@ namespace Network.NeuralMath
             get => _shape;
             set
             {
+                if(!(_shape is null))
+                {
+                    //can`t reshape tensor by shape with different size
+                    if(Shape.Size != value.Size)
+                        throw new ArgumentException(nameof(value));
+                }
+
                 _shape = value;
                 Batch = _shape[0];
                 Channels = _shape[1];
@@ -42,17 +48,24 @@ namespace Network.NeuralMath
         protected int Hw;
         protected int Chw;
 
-        protected TensorStorage()        
+        protected TensorStorage()
         {
             
         }
 
-        protected TensorStorage(Shape shape)    
+        protected TensorStorage(Shape shape)
         {
             AllocateMemory(shape);
         }
 
-        public abstract void SetData(float[] data);    
+        protected TensorStorage(Shape shape, float[] data)
+        {
+            Data = data;
+            //SetData(data);
+            Shape = shape;
+        }
+
+        //public abstract void SetData(float[] data);
 
         public void Reshape(Shape shape)
         {

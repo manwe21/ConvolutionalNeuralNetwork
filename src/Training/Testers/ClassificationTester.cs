@@ -21,7 +21,7 @@ namespace Training.Testers
             _testExamples = testExamples;
         }
 
-        public TestResult TestModel(NeuralNetwork network)    
+        public TestResult TestModel(INetwork network)
         {
             var result = new TestResult();
             var max1 = TensorBuilder.Create().Empty();

@@ -90,8 +90,8 @@ using Network.NeuralMath;
                 float[] outData = new float[_classes];
                 outData[label] = 1;
 
-                _loadedExamples[i].Input.Storage.SetData(normData);
-                _loadedExamples[i].Output.Storage.SetData(outData);
+                _loadedExamples[i].Input.Storage.Data = normData;
+                _loadedExamples[i].Output.Storage.Data = outData;
             }
         }
     
@@ -115,4 +115,3 @@ using Network.NeuralMath;
         }
     }
 }
-

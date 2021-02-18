@@ -11,12 +11,17 @@ namespace Network.Serialization
         public int H { get; set; }
         public int W { get; set; }
 
+        public ShapeInfo()
+        {
+            
+        }
+
         public ShapeInfo(Shape shape)
         {
-            B = shape.Dimensions[0];
-            C = shape.Dimensions[1];
-            H = shape.Dimensions[2];
-            W = shape.Dimensions[3];
+            B = shape[0];
+            C = shape[1];
+            H = shape[2];
+            W = shape[3];
         }
         
     }

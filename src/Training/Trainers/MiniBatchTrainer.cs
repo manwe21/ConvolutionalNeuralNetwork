@@ -24,50 +24,36 @@ namespace Training.Trainers
             BatchSize = settings.BatchSize;
         }
 
-        public override void TrainModel(NeuralNetwork network)
+        public override void TrainModel(NeuralLayeredNetwork network)
         {
             base.TrainModel(network);
-            
-            var examplesPerEpoch = ExamplesCount / BatchSize;
             Stopwatch sw = Stopwatch.StartNew();
-            
             for ( ; Epoch <= EpochsCount; Epoch++)
             {
-                var examplesPassed = 0;
                 Iteration = 1;
-                float loss = 0;
-                var correct = 0;
-                
                 foreach (var example in TrainingExamples)
                 {
                     Network.Forward(example.Input);
-                    Network.Output.LossDerivative(example.Output, LossFunction, Dy);
                     CalculateLoss(example.Output);
-                    loss += Loss[0];
+                    Network.Output.LossDerivative(example.Output, LossFunction, Dy);
                     Network.Backward(Dy);
-                    if (CheckModelOnCorrectOutput(example.Output))
-                       correct++;
-                    examplesPassed++;
-                    if (examplesPassed % BatchSize == 0)
+                    CorrectWeights();
+                    
+                    var result = new IterationResult
                     {
-                        CorrectWeights();
-                        var result = new IterationResult
-                        {
-                            Epoch = this.Epoch,
-                            Iteration = this.Iteration,
-                            IterationTime = sw.Elapsed,
-                            ExamplesPerEpoch = examplesPerEpoch,
-                            Loss = loss / BatchSize,
-                            Accuracy = (float) correct / BatchSize,
-                            EpochsCount = this.EpochsCount
-                        };
-                        RaiseIterationFinishedEvent(result);
-                        loss = 0;
-                        correct = 0;
-                        Iteration++;
-                        sw.Restart();
-                    }
+                        Epoch = this.Epoch,
+                        Iteration = this.Iteration,
+                        IterationTime = sw.Elapsed,
+                        ExamplesPerEpoch = ExamplesCount,
+                        Loss = Loss.Storage.Data.Average(),
+                        Accuracy = 0,//Metric.Evaluate(example.Output, Network.Output),
+                        EpochsCount = this.EpochsCount
+                    };
+                    RaiseIterationFinishedEvent(result);
+                    Iteration++;
+                    sw.Restart();
                 }
+                
                 RaiseEpochFinishedEvent(new EpochResult());
             }
         }

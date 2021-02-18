@@ -25,6 +25,21 @@ namespace Network.NeuralMath
             Size = b * c * w * h;
         }
 
+        public static Shape ForScalar()
+        {
+            return new Shape(1, 1, 1, 1);
+        }
+
+        public static Shape ForVector(int vectorLength)
+        {
+            return new Shape(1, 1, 1, vectorLength);
+        }
+
+        public static Shape ForMatrix(int height, int width)
+        {
+            return new Shape(1, 1, height, width);
+        }
+
         public static bool operator ==(Shape a, Shape b)
         {
             if (a is null || b is null)

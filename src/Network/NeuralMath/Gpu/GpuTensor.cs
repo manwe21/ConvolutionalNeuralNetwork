@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.Text;
 using ManagedCuda.CudaBlas;
 using Network.NeuralMath.Functions.ActivationFunctions;
 using Network.NeuralMath.Functions.LossFunctions;
@@ -12,7 +10,7 @@ namespace Network.NeuralMath.Gpu
         private readonly GpuContext _context;
         
         //Reference to TensorStorage in parent class
-        //Duplicating of reference is not beautiful but help to avoid extra casts
+        //Duplicating of reference is not beautiful but helps to avoid extra casts
         private readonly GpuStorage _storage;
         
         public GpuTensor() : base(new GpuStorage())
@@ -75,21 +73,21 @@ namespace Network.NeuralMath.Gpu
                 colB);
         }
 
-        public override void DotTransA2D(Tensor tensor, Tensor result)
+        public override void Dot2D(Tensor b, int ha, int wa, int hb, int wb, Shape resultShape, Tensor result)
         {
-            if (!result.Storage.IsMemoryAllocated)
-            {
-                result.Storage.AllocateMemory(GetDot2DTransAShape(Storage.Shape, tensor.Storage.Shape));
-            }
-            
-            if(!(tensor.Storage is GpuStorage bStorage))
-                throw new ArgumentException($"{ nameof(tensor) } has unsupported storage type");
+            if(!(b.Storage is GpuStorage bStorage))
+                throw new ArgumentException($"{ nameof(b) } has unsupported storage type");
             if(!(result.Storage is GpuStorage cStorage))
                 throw new ArgumentException($"{ nameof(result) } has unsupported storage type");
 
-            int rowA = Height;
-            int colA = Width;
-            int colB = tensor.Width;
+            if (!result.Storage.IsMemoryAllocated)
+            {
+                result.Storage.AllocateMemory(resultShape ?? new Shape(1, 1,ha, wb ));
+            }
+            
+            int rowA = ha;
+            int colA = wa;
+            int colB = wb;
             int colC = result.Width;
 
             float alpha = 1.0f;
@@ -101,10 +99,10 @@ namespace Network.NeuralMath.Gpu
             
             _context.BlasContext.Gemm(
                 Operation.NonTranspose,
-                Operation.Transpose,
+                Operation.NonTranspose,
                 colC,
-                colA,
                 rowA,
+                colA,
                 alpha,
                 dB,
                 colB,
@@ -128,7 +126,7 @@ namespace Network.NeuralMath.Gpu
             var dX = _storage.DeviceStorage;
             var dRes = resStorage.DeviceStorage;
             
-            _context.Methods.Transpose2D(dX, dRes, Height, Width);
+            _context.Methods.Transpose2D(dX, dRes, _storage.Descriptor);
         }
 
         public override void Max(Tensor result)
@@ -136,15 +134,16 @@ namespace Network.NeuralMath.Gpu
             if(!(result.Storage is GpuStorage resStorage))
                 throw new ArgumentException($"{ nameof(result) } has unsupported storage type");
             
+            
             if (!result.Storage.IsMemoryAllocated)
             {
-                result.Storage.AllocateMemory(new Shape(1, 1, 1, 2));
+                result.Storage.AllocateMemory(new Shape(Batch, 1, 1, 2));
             }
-
+            
             var dA = _storage.DeviceStorage;
             var dMax = resStorage.DeviceStorage;
             
-            _context.Methods.Max(dA, dMax, Size);
+            _context.Methods.Max(dA, dMax, _storage.Descriptor);
         }
 
         public override void Sum(Tensor tensor)
@@ -155,7 +154,7 @@ namespace Network.NeuralMath.Gpu
             var dA = _storage.DeviceStorage;
             var dB = bStorage.DeviceStorage;
                  
-            _context.Methods.Sum(dA, dB, Size);
+            _context.Methods.Sum(dA, dB, _storage.Descriptor);
         }
 
         public override void Sum(Tensor tensor, Tensor result)
@@ -166,7 +165,7 @@ namespace Network.NeuralMath.Gpu
         public override void Fill(float value)    
         {
             var dX = _storage.DeviceStorage;
-            _context.Methods.Fill(dX, value, Size);
+            _context.Methods.Fill(dX, value, _storage.Descriptor);
         }
 
         public override void Fill(float value, Tensor result)
@@ -190,7 +189,7 @@ namespace Network.NeuralMath.Gpu
             _context.Methods.Rotate180(dX, dRes, this.Storage.Descriptor);
         }
 
-        public override void Img2Col(int kernelH, int kernelW, int stride, Tensor result)
+        public override void Im2Col(int kernelH, int kernelW, int stride, Tensor result)
         {
             if(!(result.Storage is GpuStorage resStorage))
                 throw new ArgumentException($"{ nameof(result) } has unsupported storage type");
@@ -204,7 +203,48 @@ namespace Network.NeuralMath.Gpu
             var dRes =resStorage.DeviceStorage;
             
             int convByRow = (Width - kernelW) / stride + 1;
-            _context.Methods.Img2Col2(dA, dRes, Storage.Descriptor, kernelH, stride, result.Storage.Descriptor, convByRow);
+            _context.Methods.Im2Col(dA, dRes, Storage.Descriptor, kernelH, stride, result.Storage.Descriptor, convByRow);
+            
+            /*
+            if (!result.Storage.IsMemoryAllocated)
+            {
+                result.Storage.AllocateMemory(GetImg2ColShape(Storage.Shape, kernelH, kernelW, stride));
+            }
+            
+            var convByRow = (Width - kernelW) / stride + 1;
+            var convByCol = (Height - kernelH) / stride + 1;
+            var khw = kernelH * kernelW;
+            var convSq = convByCol * convByRow;
+
+            for (int n = 0; n < result.Size; n++)
+            {
+                int i = n / result.Width;
+                int j = n % result.Width;
+                int curC = i / khw;
+                int curB = j / convSq;
+                int kernelIndex = i % khw;
+                int kernelI = kernelIndex / kernelH;
+                int kernelJ = kernelIndex % kernelW;
+                int kernelStartPointI = j % convSq / convByRow * stride;
+                int kernelStartPointJ = j % convSq % convByRow * stride;
+                int h = kernelStartPointI + kernelI;
+                int w = kernelStartPointJ + kernelJ;
+                result[i, j] = this[curB, curC, h, w];
+            }*/
+            
+        }
+
+        public override void Col2Im(Shape outShape, Tensor result)
+        {
+            if (!result.Storage.IsMemoryAllocated)
+            {
+                result.Storage.AllocateMemory(outShape);    
+            }
+            
+            var dA = _storage.DeviceStorage;
+            var dRes = (result.Storage as GpuStorage).DeviceStorage;
+            
+            _context.Methods.Col2Im(dA, dRes, Storage.Descriptor, result.Storage.Descriptor);
         }
 
         public override void Pad(int value, Tensor result)
@@ -231,43 +271,36 @@ namespace Network.NeuralMath.Gpu
             throw new System.NotImplementedException();
         }
 
-        public override void FullyConnectedDx(Tensor weights, Tensor dy, Tensor result)
+        public override void FullyConnectedDx(Tensor weights, Tensor dy, Tensor transBuffer, Tensor result)
         {
-            var shape = dy.Storage.Shape;
-            dy.Storage.Reshape(new Shape(1, 1, dy.Width, 1));
-            
-            if(result.Storage.IsMemoryAllocated)
-                result.Storage.Reshape(new Shape(1, 1, result.Width, 1));
-            
-            weights.Dot2D(dy, result);
-            dy.Storage.Reshape(shape);
-            result.Storage.Reshape(Storage.Shape);
+            if (!result.Storage.IsMemoryAllocated)
+            {
+                result.Storage.AllocateMemory(new Shape(Batch, Channels, Height, Width));
+            }
+            weights.Transpose2D(transBuffer);
+            dy.Dot2D(transBuffer, dy.Batch, dy.Width, transBuffer.Height, transBuffer.Width, Storage.Shape, result);
         }
 
-        public override void FullyConnectedDw(Tensor dy, Tensor result)
+        public override void FullyConnectedDw(Tensor dy, Tensor transBuffer, Tensor result)
         {
-            var shape = this.Storage.Shape;
-            this.Storage.Shape = new Shape(1, 1, Width, 1);
-            this.Dot2D(dy, result);
-            this.Storage.Shape = shape;
+            var shape = Storage.Shape;  //Change shape to 2d
+            Storage.Shape = new Shape(1, 1, Batch, Width);
+            this.Transpose2D(transBuffer);
+            transBuffer.Dot2D(dy, transBuffer.Height, transBuffer.Width, dy.Batch, dy.Width, result.Storage.Shape, result);
+            Storage.Shape = shape;
         }
 
-        public override void Convolution(Tensor filters, int stride, int padding, Tensor img2ColBuffer, Tensor result)
+        public override void Convolution(Tensor filters, int stride, int padding, Tensor img2ColBuffer, Tensor dotBuffer, Tensor result)
         {
             if (!result.Storage.IsMemoryAllocated)    
             {
                 result.Storage.AllocateMemory(GetConvolutionalShape(Storage.Shape, filters.Storage.Shape, stride, padding));
             }
-            
-            this.Img2Col(filters.Height, filters.Width, stride, img2ColBuffer);
-            var wShape = filters.Storage.Shape;
-            filters.Storage.Shape = new Shape(1, 1, filters.Batch, filters.Channels * filters.Height * filters.Width);
-            
-            //keep result`s shape and use result tensor in dot product to avoid storing another one buffer
-            var shape = result.Storage.Shape;
-            filters.Dot2D(img2ColBuffer, result);
-            result.Storage.Reshape(shape);
-            filters.Storage.Reshape(wShape);
+
+            this.Im2Col(filters.Height, filters.Width, stride, img2ColBuffer);
+            filters.Dot2D(img2ColBuffer, filters.Batch, filters.Channels * filters.Height * filters.Width,
+              img2ColBuffer.Height, img2ColBuffer.Width, null, dotBuffer);
+            dotBuffer.Col2Im(result.Storage.Shape, result);
         }
 
         public override void ConvolutionDx(
@@ -276,6 +309,7 @@ namespace Network.NeuralMath.Gpu
             Tensor paddingBuffer,
             Tensor img2ColBuffer,
             Tensor filters2DBuffer,
+            Tensor rotBuffer,
             Tensor dot2DBuffer,
             Tensor dx)
         {
@@ -297,43 +331,15 @@ namespace Network.NeuralMath.Gpu
             }
             
             dy.Pad(Width - dy.Width, paddingBuffer);
-            paddingBuffer.Img2Col(filters.Height, filters.Width, 1, img2ColBuffer);
-            var wRot = new GpuTensor();
-            filters.Rotate180(wRot);
+            paddingBuffer.Im2Col(filters.Height, filters.Width, 1, img2ColBuffer);
+            filters.Rotate180(rotBuffer);
             
-            var dW = (wRot.Storage as GpuStorage).DeviceStorage;
+            var dW = (rotBuffer.Storage as GpuStorage).DeviceStorage;
             var dW2D = wByChannelsStorage.DeviceStorage;
             
-            _storage.Context.Methods.WToRow(dW, dW2D, filters.Size, filters.Storage.Descriptor, filters2DBuffer.Storage.Descriptor);
+            _storage.Context.Methods.To2DByRows(dW, dW2D, filters.Storage.Descriptor, filters2DBuffer.Storage.Descriptor);
             filters2DBuffer.Dot2D(img2ColBuffer, dot2DBuffer);
-            resStorage.SetData((dot2DBuffer.Storage as GpuStorage)?.DeviceStorage);
-            /*if(!(filters.Storage is GpuStorage wStorage))
-                throw new ArgumentException($"{ nameof(filters) } has unsupported storage type");
-            if(!(filters2DBuffer.Storage is GpuStorage wByChannelsStorage))
-                throw new ArgumentException($"{ nameof(filters2DBuffer) } has unsupported storage type");
-            if(!(dx.Storage is GpuStorage resStorage))
-                throw new ArgumentException($"{ nameof(dx) } has unsupported storage type");
-            
-            if (!dx.Storage.IsMemoryAllocated)
-            {
-                dx.Storage.AllocateMemory(new Shape(Batch, Channels, Height, Width));
-            }
-            
-            if (!filters2DBuffer.Storage.IsMemoryAllocated)
-            {
-                filters2DBuffer.Storage.AllocateMemory(new Shape(1, 1, filters.Batch * filters.Height * filters.Width, filters.Channels));
-            }
-            
-            dy.Pad(Width - dy.Width, paddingBuffer);
-            paddingBuffer.Img2Col(filters.Height, filters.Width, 1, img2ColBuffer);
-
-            var dW = wStorage.DeviceStorage;
-            var dW2D = wByChannelsStorage.DeviceStorage;
-            
-            _context.Methods.VerticalReshape2(dW, dW2D, filters.Storage.Descriptor, filters2DBuffer.Storage.Descriptor, filters2DBuffer.Size);
-            img2ColBuffer.DotTransA2D(filters2DBuffer, dot2DBuffer);
-            
-            resStorage.SetData((dot2DBuffer.Storage as GpuStorage)?.DeviceStorage);*/
+            _context.Methods.ReshapeForBatches((dot2DBuffer as GpuTensor)._storage.DeviceStorage, resStorage.DeviceStorage, dot2DBuffer.Storage.Descriptor, resStorage.Descriptor);
         }
 
         public override void ConvolutionDw(Tensor filters, Tensor dy, Tensor dy2DBuffer, Tensor dot2DBuffer, Tensor img2ColX,
@@ -347,13 +353,12 @@ namespace Network.NeuralMath.Gpu
             if (!dw.Storage.IsMemoryAllocated)
                 dw.Storage.AllocateMemory(new Shape(filters.Batch, filters.Channels, filters.Height, filters.Width));
             if (!dy2DBuffer.Storage.IsMemoryAllocated)
-                dy2DBuffer.Storage.AllocateMemory(new Shape(1, 1, dy.Height * dy.Width, dy.Channels));
+                dy2DBuffer.Storage.AllocateMemory(new Shape(1, 1, dy.Height * dy.Width * dy.Batch, dy.Channels));
             
             var dDy = dyStorage.DeviceStorage;
             var dDy2D = dyByChannelsStorage.DeviceStorage;
             
-            _context.Methods.VerticalReshape2(dDy, dDy2D, dy.Storage.Descriptor, dy2DBuffer.Storage.Descriptor, dy2DBuffer.Size);
-            
+            _context.Methods.To2DByColumns(dDy, dDy2D, dy.Storage.Descriptor, dy2DBuffer.Storage.Descriptor);
             img2ColX.Dot2D(dy2DBuffer, dot2DBuffer);
             dot2DBuffer.Transpose2D(dw);
         }
@@ -379,7 +384,7 @@ namespace Network.NeuralMath.Gpu
             var dMax = indexesStorage.DeviceStorage;
             var dRes = resStorage.DeviceStorage;
             
-            _context.Methods.MaxPool2(dX, dRes, dMax, poolSize, stride, Storage.Descriptor, result.Storage.Descriptor);
+            _context.Methods.MaxPool(dX, dRes, dMax, poolSize, stride, Storage.Descriptor, result.Storage.Descriptor);
         }
 
         public override void MaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor result)
@@ -398,7 +403,7 @@ namespace Network.NeuralMath.Gpu
             var dMax = indexesStorage.DeviceStorage;
             var dDx = resStorage.DeviceStorage;
             
-            _context.Methods.MaxPoolDx(dDy, dMax, dDx, dy.Size);
+            _context.Methods.MaxPoolDx(dDy, dMax, dDx, dy.Storage.Descriptor);
         }
 
         public override void Activation(IFunction function, Tensor result)
@@ -414,7 +419,7 @@ namespace Network.NeuralMath.Gpu
             var dX = _storage.DeviceStorage;
             var dRes = resStorage.DeviceStorage;
 
-            _context.Methods.Activation(dX, function, dRes, Size);
+            _context.Methods.Activation(dX, function, dRes, _storage.Descriptor);
         }
 
         public override void ActivationDx(IFunction function, Tensor dy, Tensor dx)
@@ -435,9 +440,9 @@ namespace Network.NeuralMath.Gpu
             var dDy = dyStorage.DeviceStorage;
             var dDx = resStorage.DeviceStorage;
             
-            _context.Methods.ActivationDx(dX, function, dDy, dDx, Size);
+            _context.Methods.ActivationDx(dX, function, dDy, dDx, _storage.Descriptor);
         }
-
+        
         public override void Softmax(Tensor result, Tensor maxBuffer)
         {
             if(!(maxBuffer.Storage is GpuStorage maxStorage))
@@ -445,33 +450,41 @@ namespace Network.NeuralMath.Gpu
             if(!(result.Storage is GpuStorage resStorage))
                 throw new ArgumentException($"{ nameof(result) } has unsupported storage type");
             
-            if (!result.Storage.IsMemoryAllocated)
+            if (!result.Storage.IsMemoryAllocated)  
             {
                 result.Storage.AllocateMemory(Storage.Shape.GetCopy());
             }
             
-            //this.Max(maxBuffer);
+            this.Max(maxBuffer);
 
+            //When softmax works together with convolution, result is wrong
+            #region CPU Implementation
+            
+            var cpu = _storage.Data;
+            var res = new float[result.Size];
+            var sizePerBatch = Size / Batch;
+            for (int b = 0; b < Batch; b++)
+            {
+                var denominator = 0.0f;
+                for (int i = b * sizePerBatch; i < b * sizePerBatch + sizePerBatch; i++)
+                {
+                    denominator += MathF.Exp(cpu[i] - maxBuffer[b * 2]);
+                }
+                for (int i = b * sizePerBatch; i < b * sizePerBatch + sizePerBatch; i++)
+                {
+                    res[i] = MathF.Exp(cpu[i] - maxBuffer[b * 2]) / denominator;
+                }
+            }
+
+            result.Storage.Data = res;
+            
+            #endregion
+            
             var dX = _storage.DeviceStorage;
             var dY = resStorage.DeviceStorage;
             var dMax = maxStorage.DeviceStorage;
-            
-            //CPU implementation (because of GPU reduction problems)
-            float[] x = dX;
-            float max = x.Max();
-            var denominator = 0.0f;
-            
-            for (int i = 0; i < Size; i++)
-            {
-                denominator += MathF.Exp(x[i] - max);
-            }
-            
-            for (int i = 0; i < result.Size; i++)
-            {
-                result[i] = MathF.Exp(x[i] - max) / denominator;
-            }
-            
-            //_context.Methods.Softmax(dX, dMax, dY, Size);
+
+            _context.Methods.Softmax(dX, dMax, dY, _storage.Descriptor);
         }
 
         public override void SoftmaxDx(Tensor dy, Tensor dx)
@@ -490,7 +503,7 @@ namespace Network.NeuralMath.Gpu
             var dDy = dyStorage.DeviceStorage;
             var dRes = resStorage.DeviceStorage;
             
-            _context.Methods.SoftmaxDx(dY, dDy, dRes, Size);
+            _context.Methods.SoftmaxDx(dY, dDy, dRes, _storage.Descriptor);
         }
 
         public override void Loss(Tensor correct, ILossFunction lossFunction, Tensor loss)
@@ -502,17 +515,14 @@ namespace Network.NeuralMath.Gpu
             
             if (!loss.Storage.IsMemoryAllocated)
             {
-                loss.Storage.AllocateMemory(1);
+                loss.Storage.AllocateMemory(new Shape(Batch, 1, 1, 1));
             }
             
             var dO = _storage.DeviceStorage;
             var dT = tStorage.DeviceStorage;
             var dLoss = lossStorage.DeviceStorage;
 
-            //CPU implementation (because of GPU reduction problems)
-            loss[0] = lossFunction.Process(this, correct);
-
-            //_context.Methods.Loss(dO, dT, dLoss, lossFunction, Size);
+            _context.Methods.Loss(dO, dT, dLoss, lossFunction, _storage.Descriptor);
         }
 
         public override void LossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy)
@@ -531,7 +541,7 @@ namespace Network.NeuralMath.Gpu
             var dT = tStorage.DeviceStorage;
             var dDy = resStorage.DeviceStorage;
 
-            _context.Methods.LossDerivative(dO, dT, dDy, lossFunction, Size);
+            _context.Methods.LossDerivative(dO, dT, dDy, lossFunction, dy.Storage.Descriptor);
         }
 
         public override void ToFlatten(Tensor result)
@@ -544,7 +554,7 @@ namespace Network.NeuralMath.Gpu
                 result.Storage.AllocateMemory(GetFlattenShape(Storage.Shape));
             }    
             
-            (result.Storage as GpuStorage).SetData(_storage.DeviceStorage);
+            (result.Storage as GpuStorage).SetDeviceData(_storage.DeviceStorage);
         }
 
         public override void FlattenDx(Tensor dy, Tensor dx)
@@ -559,7 +569,7 @@ namespace Network.NeuralMath.Gpu
                 dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
             }
             
-            (dx.Storage as GpuStorage).SetData(dyStorage.DeviceStorage);
+            (dx.Storage as GpuStorage).SetDeviceData(dyStorage.DeviceStorage);
         }
 
         public void Dispose()

@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text.Json;
 using Network.Model;
 using Network.Model.Layers;
 using Network.NeuralMath;
 
-namespace Network.Serialization
+namespace Network.Serialization.Serializers
 {
-    public static class NetworkSerializer
+    //todo refactor
+    public class BinaryNetworkSerializer : INetworkSerializer
     {
-        public static void SerializeNetwork(NeuralNetwork network, string filePath)
+        public void Serialize(NeuralLayeredNetwork network, string filePath)
         {
             FileInfo file = new FileInfo(filePath);
             if (file.Extension != ".cnn")
@@ -24,7 +23,14 @@ namespace Network.Serialization
             formatter.Serialize(stream, data);
         }
 
-        public static NeuralNetwork DeserializeNetwork(string filePath)
+        public void Serialize(NeuralLayeredNetwork network, Stream stream)
+        {
+            var data = network.GetNetworkInfo();
+            BinaryFormatter formatter = new BinaryFormatter();
+            formatter.Serialize(stream, data);
+        }
+
+        public NeuralLayeredNetwork Deserialize(string filePath)
         {
             FileInfo file = new FileInfo(filePath);
             if (!file.Exists)
@@ -39,7 +45,25 @@ namespace Network.Serialization
                 info = (NetworkInfo)formatter.Deserialize(stream);
             }
             var inputShape = new Shape(info.InputShape.B, info.InputShape.C, info.InputShape.H, info.InputShape.W);
-            var network = new NeuralNetwork(inputShape);
+            var network = new NeuralLayeredNetwork(inputShape);
+            foreach (var layerInfo in info.LayersInfo)
+            {
+                var layerType = Type.GetType(layerInfo.LayerType);
+                if(layerType is null)
+                    throw new ArgumentException();
+                var layer = (BaseLayer) Activator.CreateInstance(layerType, layerInfo);
+                network.AddLayer(layer);
+            }
+            return network;
+        }
+
+        public NeuralLayeredNetwork Deserialize(Stream stream)
+        {
+            NetworkInfo info;
+            BinaryFormatter formatter = new BinaryFormatter();
+            info = (NetworkInfo)formatter.Deserialize(stream);
+            var inputShape = new Shape(info.InputShape.B, info.InputShape.C, info.InputShape.H, info.InputShape.W);
+            var network = new NeuralLayeredNetwork(inputShape);
             foreach (var layerInfo in info.LayersInfo)
             {
                 var layerType = Type.GetType(layerInfo.LayerType);

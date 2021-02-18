@@ -13,32 +13,30 @@ namespace Network.NeuralMath.Cpu
         public CpuStorage(Shape shape) : base(shape)
         {
 
-        }    
+        }
         
-        public CpuStorage(Shape shape, float[] array)
+        public CpuStorage(Shape shape, float[] data) : base(shape, data)
         {
-            Shape = shape;
-            _array = array;
+            
         }
 
-        public override float[] Array
+        public override float[] Data
         {
             get => _array;
-        }
-
-        public override void SetData(float[] data)
-        {
-            if (IsMemoryAllocated)
+            set
             {
-                if(_array.Length != data.Length)
-                    throw new ArgumentException(nameof(data));
-                _array = data;
-            }
-            else
-            {
-                _array = data;
-                Shape = new Shape(1, 1, 1, _array.Length);
-                IsMemoryAllocated = true;
+                if (IsMemoryAllocated)
+                {
+                    if(_array.Length != value.Length)
+                        throw new ArgumentException(nameof(value));
+                    _array = value;
+                }
+                else
+                {
+                    _array = value;
+                    Shape = new Shape(1, 1, 1, _array.Length);
+                    IsMemoryAllocated = true;
+                }
             }
         }
 
@@ -92,7 +90,7 @@ namespace Network.NeuralMath.Cpu
             _array[c * Hw + i * Width + j] = value;
         }
 
-        public override void Set(int b, int c, int i, int j, float value)
+        public override void Set(int b, int c, int i, int j, float value)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
         {
             _array[c * Hw + i * Width + j + b * Chw] = value;
         }

@@ -15,7 +15,7 @@ namespace Network.Model.WeightsInitializers
             {
                 data[i] = (float)RandomUtil.GetGaussian(0, Math.Sqrt(variance));
             }
-            wLayer.ParametersStorage.Weights.Storage.SetData(data);
+            wLayer.ParametersStorage.Weights.Storage.Data = data;
         }
     }
 }

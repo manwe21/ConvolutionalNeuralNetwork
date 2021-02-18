@@ -7,44 +7,40 @@ namespace Network.NeuralMath.Gpu
 {
     public class GpuStorage : TensorStorage, IDisposable
     {
-        public CudaDeviceVariable<float> DeviceStorage { get;  set; }
         public GpuContext Context { get; } = GpuContext.Instance;
+        
+        public CudaDeviceVariable<float> DeviceStorage { get;  set; }
 
-        public GpuStorage()
+        public GpuStorage() { }
+        
+        public GpuStorage(Shape shape) : base(shape){ }
+        
+        public GpuStorage(Shape shape, float[] hostData) : base(shape, hostData) { }
+
+        public override float[] Data
         {
+            get => DeviceStorage;
+            set
+            {
+                if(!IsMemoryAllocated)
+                    AllocateMemory(value.Length);
             
+                //allocate memory for host data
+                IntPtr host = Marshal.AllocHGlobal(value.Length * sizeof(float));
+                Marshal.Copy(value, 0, host, value.Length);
+            
+                //copy host data to device 
+                var res = DriverAPINativeMethods.AsynchronousMemcpy_v2.cuMemcpyHtoDAsync_v2(DeviceStorage.DevicePointer, host,
+                    DeviceStorage.SizeInBytes, Context.Stream.Stream);
+                if(res != CUResult.Success)
+                    throw new CudaException(res);
+            
+                //free host buffer
+                Marshal.FreeHGlobal(host);
+            }
         }
-        
-        public GpuStorage(Shape shape) : base(shape)
-        {
-            
-        }    
-        
-        public GpuStorage(Shape shape, float[] deviceStorage)
-        {
-            Shape = shape;
-            SetData(deviceStorage);
-        }
 
-        public override float[] Array => DeviceStorage;
-        
-        public override void SetData(float[] data)
-        {
-            //allocate memory for host data
-            IntPtr host = Marshal.AllocHGlobal(data.Length * sizeof(float));
-            Marshal.Copy(data, 0, host, data.Length);
-            
-            //copy host data to device 
-            var res = DriverAPINativeMethods.AsynchronousMemcpy_v2.cuMemcpyHtoDAsync_v2(DeviceStorage.DevicePointer, host,
-                DeviceStorage.SizeInBytes, Context.Stream.Stream);
-            if(res != CUResult.Success)
-                throw new CudaException(res);
-            
-            //free host buffer
-            Marshal.FreeHGlobal(host);
-        }    
-
-        public void SetData(CudaDeviceVariable<float> data)
+        public void SetDeviceData(CudaDeviceVariable<float> data)
         {
             if (IsMemoryAllocated)
             {

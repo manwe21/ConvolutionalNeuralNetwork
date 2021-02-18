@@ -6,12 +6,8 @@ namespace Network.Model.Layers
     public interface IParameterizedLayer
     {
         ParametersStorage ParametersStorage { get; set; }
-        //Tensor Weights { get; }       
-        //Tensor Biases { get; }    
-        //Tensor WeightsGradient { get; }
         int FIn { get; }
         int FOut { get; }
 
-        //Dictionary<string, Tensor> Parameters { get; set; }
     }
 }

@@ -44,13 +44,13 @@ namespace Network.NeuralMath
         
         public int Size => Storage.Size;
 
-        public abstract void Dot2D(Tensor tensor, Tensor result);
-        
-        public abstract void DotTransA2D(Tensor tensor, Tensor result);
-        
+        public abstract void Dot2D(Tensor tensor, Tensor result);   
+
+        public abstract void Dot2D(Tensor b, int ha, int wa, int hb, int wb, Shape resultShape, Tensor result);
+
         public abstract void Transpose2D(Tensor result);
             
-        //result tensor: shape = 1x1x1x2 ([0] - max value, [1] - max value index)
+        //result tensor: shape = Bx1x1x2 ([0] - max value, [1] - max value index(in batch))
         public abstract void Max(Tensor result);
 
         public abstract void Sum(Tensor tensor); 
@@ -65,38 +65,39 @@ namespace Network.NeuralMath
 
         public abstract void Rotate180(Tensor result);
     
-        public abstract void Img2Col(int kernelH, int kernelW, int stride, Tensor result);
-        
-        public abstract void Pad(int value, Tensor result);
-        public abstract void PadDx(int value, Tensor dy, Tensor result);
-                            
-        public abstract void FullyConnectedDx(Tensor weights, Tensor dy, Tensor result);
-        public abstract void FullyConnectedDw(Tensor dy, Tensor result);
+        public abstract void Im2Col(int kernelH, int kernelW, int stride, Tensor result);
+        public abstract void Col2Im(Shape outShape, Tensor result);
 
+        public abstract void Pad(int value, Tensor result);
+        public abstract void PadDx(int value, Tensor dy, Tensor result);    
+                            
+        public abstract void FullyConnectedDx(Tensor weights, Tensor dy, Tensor transBuffer, Tensor result);
+        public abstract void FullyConnectedDw(Tensor dy, Tensor transBuffer, Tensor result);
+    
         public void Convolution(Tensor filters, int stride, Tensor result)
         {
             var tensorType = result.GetType();
             var builder = TensorBuilder.OfType(tensorType);
-            Convolution(filters, stride, 0, builder.Empty(), result);
+            Convolution(filters, stride, 0, builder.Empty(), builder.Empty(), result);
         }
         
-        public abstract void Convolution(Tensor filters, int stride, int padding, Tensor img2ColBuffer, Tensor result);
+        public abstract void Convolution(Tensor filters, int stride, int padding, Tensor img2ColBuffer, Tensor dotBuffer, Tensor result);
 
         public void ConvolutionDx(Tensor filters, Tensor dy, Tensor dx)
         {
             var tensorType = dx.GetType();
             var builder = TensorBuilder.OfType(tensorType);
-            ConvolutionDx(filters, dy, builder.Empty(), builder.Empty(), builder.Empty(), builder.Empty(), dx);
+            ConvolutionDx(filters, dy, builder.Empty(), builder.Empty(), builder.Empty(), builder.Empty(), builder.Empty(), dx);
         }
             
-        public abstract void ConvolutionDx(Tensor filters, Tensor dy, Tensor paddingBuffer, Tensor img2ColBuffer, Tensor filters2DBuffer, Tensor dot2DBuffer, Tensor dx);
+        public abstract void ConvolutionDx(Tensor filters, Tensor dy, Tensor paddingBuffer, Tensor img2ColBuffer, Tensor filters2DBuffer, Tensor rotBuffer, Tensor dot2DBuffer, Tensor dx);
 
         public void ConvolutionDw(Tensor filters, Tensor dy, int stride, Tensor dw)
         {
             var tensorType = dw.GetType();
             var builder = TensorBuilder.OfType(tensorType);
             var img2Col = TensorBuilder.OfType(tensorType).Empty();
-            Img2Col(filters.Height, filters.Width, stride, img2Col);
+            Im2Col(filters.Height, filters.Width, stride, img2Col);
             ConvolutionDw(filters, dy, builder.Empty(), builder.Empty(), img2Col, dw);
         }
         
@@ -146,7 +147,7 @@ namespace Network.NeuralMath
 
         public static Shape GetFlattenShape(Shape input)
         {
-            return new Shape(1, 1, 1, input.Size);
+            return new Shape(input[0], 1, 1, input.Size / input[0]);
         }
 
         public static Shape GetImg2ColShape(Shape input, int kernelW, int kernelH, int stride)

@@ -7,7 +7,7 @@ namespace Training.Optimizers.Cpu
 {
     public class CpuAdam : Adam
     {
-        public CpuAdam(float learningRate) : base(learningRate)
+        public CpuAdam(float learningRate) : base(learningRate) 
         { }
         
         public override unsafe void Correct(Tensor weights, Tensor gradients, Dictionary<string, Tensor> parameters,
@@ -16,13 +16,28 @@ namespace Training.Optimizers.Cpu
             var sTensor = parameters["S"];
             var dTensor = parameters["D"];
             
-            fixed (float* wPtr = weights.Storage.Array)
+            /*for (int i = 0; i < weights.Size; i++)
             {
-                fixed (float* sPtr = sTensor.Storage.Array)
+                sTensor[i] = Alpha * sTensor[i] + (1 - Alpha) * gradients[i];
+                dTensor[i] = Beta * dTensor[i] + (1 - Beta) * gradients[i] * gradients[i];
+
+                float s = sTensor[i] / (1 - MathF.Pow(Alpha, iteration));
+                float d = dTensor[i] / (1 - MathF.Pow(Beta, iteration));
+
+                weights[i] -= LearningRate / MathF.Sqrt(d + Single.Epsilon) * s;
+
+                if(resetDw)
+                    gradients[i] = 0;
+
+            }*/
+            
+            fixed (float* wPtr = weights.Storage.Data)
+            {
+                fixed (float* sPtr = sTensor.Storage.Data)
                 {
-                    fixed (float* dPtr = dTensor.Storage.Array)
+                    fixed (float* dPtr = dTensor.Storage.Data)
                     {
-                        fixed (float* gPtr = gradients.Storage.Array)
+                        fixed (float* gPtr = gradients.Storage.Data)
                         {
                             for (int i = 0; i < weights.Size; i++)
                             {

@@ -22,9 +22,9 @@ namespace Training.Data
             {
                 using (var writer = new BinaryWriter(stream))    
                 {
-                    writer.Write(shape.Dimensions[1]);
-                    writer.Write(shape.Dimensions[2]);
-                    writer.Write(shape.Dimensions[3]);
+                    writer.Write(shape[1]);
+                    writer.Write(shape[2]);
+                    writer.Write(shape[3]);
                     int totalExamples = classesDirs.Select(d => d.GetFiles().Length).Sum();
                     writer.Write(totalExamples);
                     writer.Write(classesDirs.Count);
@@ -33,9 +33,9 @@ namespace Training.Data
                     {
                         foreach (var img in dir.EnumerateFiles())
                         {
-                            byte[] imgData = new byte[shape.Dimensions[1] * shape.Dimensions[2] * shape.Dimensions[3]];
+                            byte[] imgData = new byte[shape[1] * shape[2] * shape[3]];
                             Bitmap bitmap = new Bitmap(img.FullName);
-                            bitmap = (Bitmap) bitmap.GetThumbnailImage(shape.Dimensions[2], shape.Dimensions[3], null,
+                            bitmap = (Bitmap) bitmap.GetThumbnailImage(shape[2], shape[3], null,
                                 IntPtr.Zero);
                             bitmap.ToArray(imgData);
                             data.Add(new Tuple<byte[], int>(imgData, label));

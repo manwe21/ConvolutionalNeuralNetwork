@@ -4,6 +4,6 @@ namespace Training.Testers
 {
     public interface ITester
     {
-        TestResult TestModel(NeuralNetwork network);
+        TestResult TestModel(INetwork network);
     }
 }

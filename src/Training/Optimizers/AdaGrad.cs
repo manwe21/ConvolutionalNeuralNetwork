@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Network.NeuralMath;
-using Training.Trainers;
 
 namespace Training.Optimizers    
 {

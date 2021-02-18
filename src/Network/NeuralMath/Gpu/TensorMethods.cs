@@ -1,7 +1,5 @@
 ﻿using System;
-using System.IO;
 using ManagedCuda;
-using ManagedCuda.BasicTypes;
 using Network.NeuralMath.Functions.ActivationFunctions;
 using Network.NeuralMath.Functions.LossFunctions;
 
@@ -16,73 +14,65 @@ namespace Network.NeuralMath.Gpu
             _kernelManager = context.KernelManager;
         }
 
-        public void Transpose2D(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, int height, int width)
+        public void Transpose2D(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, TensorDescriptor xDesc)
         {
-            int size = height * width;
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 "transpose2d",
-                gridX,
-                blockX,
+                xDesc.Size,
                 0,
                 x.DevicePointer,
                 result.DevicePointer,
-                height,
-                width);
+                xDesc);
         }
 
-        public void Max(CudaDeviceVariable<float> x, CudaDeviceVariable<float> max, int size)
+        public void Max(CudaDeviceVariable<float> x, CudaDeviceVariable<float> max, TensorDescriptor desc)
         {
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
-            _kernelManager.LaunchKernel(
+            int gridSize = desc.Batch;
+            int blockSize = desc.Channels * desc.Height * desc.Width;
+            _kernelManager.LaunchKernel(    
                 "findMax",
-                gridX,
-                blockX,
-                size * sizeof(float),
+                gridSize,
+                blockSize,
+                blockSize * sizeof(float),
                 x.DevicePointer,
                 max.DevicePointer,
-                size);
+                desc);
         }
 
-        public void Sum(CudaDeviceVariable<float> a, CudaDeviceVariable<float> b, int size)
+        public void Sum(CudaDeviceVariable<float> a, CudaDeviceVariable<float> b, TensorDescriptor desc)
         {
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 "sum",
-                gridX,
-                blockX,
+                desc.Size,
                 0,
                 a.DevicePointer,
                 b.DevicePointer,
-                size);
+                desc);
         }
 
-        public void Fill(CudaDeviceVariable<float> x, float value, int size)
+        public void Fill(CudaDeviceVariable<float> x, float value, TensorDescriptor desc)
         {
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 "fill",
-                gridX,
-                blockX,
+                desc.Size,
                 0,
                 x.DevicePointer,
                 value,
-                size);
+                desc);
         }
 
         public void Rotate180(CudaDeviceVariable<float> x, CudaDeviceVariable<float> res, TensorDescriptor xDesc)
         {
-            _kernelManager.LaunchKernel("rotate180",
+            _kernelManager.LaunchKernel(
+                "rotate180",
                 xDesc.Size,
                 0,
                 x.DevicePointer,
                 res.DevicePointer,
-                xDesc,
-                xDesc.Size
-                );
+                xDesc);
         }
 
-        public void Img2Col2(
+        public void Im2Col(
             CudaDeviceVariable<float> x,
             CudaDeviceVariable<float> result,
             TensorDescriptor xDesc,
@@ -91,12 +81,9 @@ namespace Network.NeuralMath.Gpu
             TensorDescriptor resDesc,
             int convByRow)
         {
-            int size = resDesc.Height * resDesc.Width;
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
-                "img2Col",
-                gridX,
-                blockX,
+                "im2Col",
+                resDesc.Size,
                 0,
                 x.DevicePointer,
                 result.DevicePointer,
@@ -106,104 +93,45 @@ namespace Network.NeuralMath.Gpu
                 kernelSize);
         }
 
-        public void Img2Col(
-            CudaDeviceVariable<float> x,
-            CudaDeviceVariable<float> result,
-            int channels,
-            int height,
-            int width,
-            int kernelSize,
-            int stride,
-            int resHeight,
-            int resWidth,
-            int convByRow)
+        public void Col2Im(CudaDeviceVariable<float> x,
+            CudaDeviceVariable<float> result, TensorDescriptor xDesc, TensorDescriptor resDesc)
         {
-            int size = resHeight * resWidth;
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
-            _kernelManager.LaunchKernel(
-                "img2Col",
-                gridX,
-                blockX,
-                0,
-                x.DevicePointer,
-                result.DevicePointer,
-                channels,
-                height,
-                width,
-                resHeight,
-                resWidth,
-                convByRow,
-                kernelSize);
+            _kernelManager.LaunchKernel("col2Im", xDesc.Size, 0, x.DevicePointer, result.DevicePointer, xDesc, resDesc);
         }
 
-        public void VerticalReshape(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, int xChannels, int xHeight, int xWidth, int resHeight, int resWidth, int size)
+        public void To2DByColumns(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, TensorDescriptor xDesc, TensorDescriptor resDesc)
         {
             _kernelManager.LaunchKernel(
-                "convDx_Reshape",
-                size,
+                "to2DByColumns",
+                xDesc.Size,
                 0,
                 x.DevicePointer,
                 result.DevicePointer,
-                size,
-                xChannels,
-                xHeight,
-                xWidth,
-                resHeight,
-                resWidth);
-        }
-        
-        public void VerticalReshape2(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, TensorDescriptor xDesc, TensorDescriptor resDesc, int size)
-        {
-            _kernelManager.LaunchKernel(
-                "vertical_reshape",
-                size,
-                0,
-                x.DevicePointer,
-                result.DevicePointer,
-                size,
                 xDesc,
                 resDesc);
         }
 
-        public void HorizontalReshape(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, int xH, int xW, int resC, int resH, int resW, int size)
+        public void To2DByRows(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, TensorDescriptor xDesc, TensorDescriptor resDesc)
         {
-            _kernelManager.LaunchKernel(
-                "horizontal_Reshape",
-                size,
+            _kernelManager.LaunchKernel("to2DByRows",
+                xDesc.Size,
                 0,
                 x.DevicePointer,
                 result.DevicePointer,
-                xH,
-                xW,
-                resC,
-                resH,
-                resW,
-                size);
-        }
-
-        public void WToRow(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, int size, TensorDescriptor xDesc, TensorDescriptor resDesc)
-        {
-            _kernelManager.LaunchKernel("weightsToRow",
-                x.Size,
-                0,
-                x.DevicePointer,
-                result.DevicePointer,
-                x.Size,
                 xDesc,
-                resDesc);
+                resDesc);   
         }
         
-        public void HorizontalReshape2(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, TensorDescriptor xDesc, TensorDescriptor resDesc, int size)
+        public void ReshapeForBatches(CudaDeviceVariable<float> x, CudaDeviceVariable<float> result, TensorDescriptor xDesc, TensorDescriptor resDesc)
         {
             _kernelManager.LaunchKernel(
-                "horizontal_Reshape",
-                size,
+                "reshapeForBatches",
+                xDesc.Size,
                 0,
                 x.DevicePointer,
                 result.DevicePointer,
                 xDesc,
-                resDesc,
-                size);
+                resDesc);
         }
         
         public void Pad(
@@ -240,40 +168,6 @@ namespace Network.NeuralMath.Gpu
             CudaDeviceVariable<float> x, 
             CudaDeviceVariable<float> result,
             CudaDeviceVariable<float> maxIndexes,
-            int poolSize, 
-            int stride,
-            int xSize, 
-            int xBatch, 
-            int xChannels,
-            int xHeight, 
-            int xWidth,
-            int resSize,
-            int resHeight, 
-            int resWidth)
-        {
-            _kernelManager.LaunchKernel(
-                "maxPool",
-                resSize,
-                0,
-                x.DevicePointer,
-                result.DevicePointer, 
-                maxIndexes.DevicePointer,
-                poolSize, 
-                stride, 
-                xSize,
-                xBatch,
-                xChannels,
-                xHeight,
-                xWidth, 
-                resSize,
-                resHeight,
-                resWidth);
-        }        
-        
-        public void MaxPool2(
-            CudaDeviceVariable<float> x, 
-            CudaDeviceVariable<float> result,
-            CudaDeviceVariable<float> maxIndexes,
             int poolSize,     
             int stride,
             TensorDescriptor xDesc,
@@ -290,14 +184,14 @@ namespace Network.NeuralMath.Gpu
                 stride, 
                 xDesc, 
                 resDesc);
-        }
+        }   
         
-        public void MaxPoolDx(CudaDeviceVariable<float> dy, CudaDeviceVariable<float> maxIndexes, CudaDeviceVariable<float> dx, int size)
+        public void MaxPoolDx(CudaDeviceVariable<float> dy, CudaDeviceVariable<float> maxIndexes, CudaDeviceVariable<float> dx, TensorDescriptor dyDesc)
         {
-            _kernelManager.LaunchKernel("maxPoolDx", size, 0, dy.DevicePointer, maxIndexes.DevicePointer, dx.DevicePointer, size);
+            _kernelManager.LaunchKernel("maxPoolDx", dyDesc.Size, 0, dy.DevicePointer, maxIndexes.DevicePointer, dx.DevicePointer, dyDesc);
         }
 
-        public void Activation(CudaDeviceVariable<float> x, IFunction function, CudaDeviceVariable<float> y, int size)
+        public void Activation(CudaDeviceVariable<float> x, IFunction function, CudaDeviceVariable<float> y, TensorDescriptor desc)
         {
             string kernelName = function switch
             {
@@ -307,18 +201,16 @@ namespace Network.NeuralMath.Gpu
                 _ => throw new ArgumentException(nameof(function))
             };
             
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 kernelName,
-                gridX,
-                blockX,
+                desc.Size,
                 0,
                 x.DevicePointer,
                 y.DevicePointer,
-                size);
+                desc);
         }        
 
-        public void ActivationDx(CudaDeviceVariable<float> x, IFunction function, CudaDeviceVariable<float> dy, CudaDeviceVariable<float> dx, int size)
+        public void ActivationDx(CudaDeviceVariable<float> x, IFunction function, CudaDeviceVariable<float> dy, CudaDeviceVariable<float> dx, TensorDescriptor desc)
         {
             var kernelName = function switch
             {
@@ -328,47 +220,43 @@ namespace Network.NeuralMath.Gpu
                 _ => throw new ArgumentException(nameof(function))    
             };
             
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 kernelName,
-                gridX,
-                blockX,
+                desc.Size,
                 0,
                 x.DevicePointer,
                 dy.DevicePointer,
                 dx.DevicePointer,
-                size);
+                desc);
         }
 
-        public void Softmax(CudaDeviceVariable<float> x, CudaDeviceVariable<float> max, CudaDeviceVariable<float> y, int size)
+        public void Softmax(CudaDeviceVariable<float> x, CudaDeviceVariable<float> max, CudaDeviceVariable<float> y, TensorDescriptor desc)
         {
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
+            int sizePerBatch = desc.Channels * desc.Height * desc.Width;
             _kernelManager.LaunchKernel(
-                "softmax",
-                gridX,
-                blockX,
-                size * sizeof(float),
+                "softmax", 
+                desc.Batch,
+                sizePerBatch,
+                sizePerBatch * sizeof(float),
                 x.DevicePointer,
                 max.DevicePointer,
                 y.DevicePointer,
-                size);
+                desc);
         }
         
-        public void SoftmaxDx(CudaDeviceVariable<float> y, CudaDeviceVariable<float> dy, CudaDeviceVariable<float> dx, int size)
+        public void SoftmaxDx(CudaDeviceVariable<float> y, CudaDeviceVariable<float> dy, CudaDeviceVariable<float> dx, TensorDescriptor desc)
         {
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 "softmaxDx",
-                gridX,
-                blockX,
+                desc.Size,
                 0,
                 y.DevicePointer,
                 dy.DevicePointer,
                 dx.DevicePointer,
-                size);
+                desc);
         }
         
-        public void Loss(CudaDeviceVariable<float> o, CudaDeviceVariable<float> t, CudaDeviceVariable<float> loss, ILossFunction lossFunction, int size)
+        public void Loss(CudaDeviceVariable<float> o, CudaDeviceVariable<float> t, CudaDeviceVariable<float> loss, ILossFunction lossFunction, TensorDescriptor desc)
         {
             var kernelName = lossFunction switch
             {
@@ -376,19 +264,20 @@ namespace Network.NeuralMath.Gpu
                 MeanSquaredError _ => "mean_squared_error",
                 _ => throw new ArgumentException(nameof(lossFunction))
             };
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
+
+            int sizePerBatch = desc.Channels * desc.Height * desc.Width;
             _kernelManager.LaunchKernel(
                 kernelName,
-                gridX,
-                blockX, 
-                size * sizeof(float), 
+                desc.Batch,
+                sizePerBatch,
+                sizePerBatch * sizeof(float), 
                 o.DevicePointer,
                 t.DevicePointer,
                 loss.DevicePointer,
-                size);
+                desc);
         }
         
-        public void LossDerivative(CudaDeviceVariable<float> o, CudaDeviceVariable<float> t, CudaDeviceVariable<float> dy, ILossFunction lossFunction, int size)
+        public void LossDerivative(CudaDeviceVariable<float> o, CudaDeviceVariable<float> t, CudaDeviceVariable<float> dy, ILossFunction lossFunction, TensorDescriptor desc)
         {
             var kernelName = lossFunction switch
             {
@@ -397,16 +286,14 @@ namespace Network.NeuralMath.Gpu
                 _ => throw new ArgumentException(nameof(lossFunction))
             };
             
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 kernelName,
-                gridX,
-                blockX,
+                desc.Size,
                 0,
                 o.DevicePointer,
                 t.DevicePointer,
                 dy.DevicePointer,
-                size);
+                desc);
         }    
         
     }

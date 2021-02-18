@@ -21,7 +21,7 @@ namespace Network.Model.WeightsInitializers
             {
                 data[i] = (float)RandomUtil.GetGaussian(_mean, _deviation);
             }
-            wLayer.ParametersStorage.Weights.Storage.SetData(data);
+            wLayer.ParametersStorage.Weights.Storage.Data = data;
         }
     }
 }

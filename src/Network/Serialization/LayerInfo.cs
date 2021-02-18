@@ -1,5 +1,4 @@
 ﻿using System;
-using Network.NeuralMath;
 
 namespace Network.Serialization
 {
@@ -18,16 +17,29 @@ namespace Network.Serialization
             InputShape = info.InputShape;
             OutputShape = info.OutputShape;
         }
-        
+
+        public virtual LayerDiscriminator GetDiscriminator()
+        {
+            return LayerDiscriminator.LayerInfo;
+        }
+
     }
 
     [Serializable]
     public class ParameterizedLayerInfo : LayerInfo
     {
         public ShapeInfo WeightsShape { get; set; }
+        
         public float[] Weights { get; set; }
+        
+        public ParameterizedLayerInfo(){}
 
         public ParameterizedLayerInfo(LayerInfo info) : base(info) { }
+
+        public override LayerDiscriminator GetDiscriminator()
+        {
+            return LayerDiscriminator.ParameterizedLayerInfo;
+        }
         
     }    
     
@@ -36,7 +48,13 @@ namespace Network.Serialization
     {
         public string FunctionType { get; set; }
         
+        public ActivationLayerInfo(){}
         public ActivationLayerInfo(LayerInfo info) : base(info) { }
+        
+        public override LayerDiscriminator GetDiscriminator()
+        {
+            return LayerDiscriminator.ActivationLayerInfo;
+        }
         
     }
 
@@ -47,7 +65,13 @@ namespace Network.Serialization
         public int Stride { get; set; }
         public int KernelSize { get; set; }
         
+        public ConvolutionLayerInfo(){}
         public ConvolutionLayerInfo(LayerInfo info) : base(info) { }
+        
+        public override LayerDiscriminator GetDiscriminator()
+        {
+            return LayerDiscriminator.ConvolutionLayerInfo;
+        }
     }
 
     [Serializable]
@@ -56,16 +80,27 @@ namespace Network.Serialization
         public int PoolingSize { get; set; }
         public int Stride { get; set; }
         
+        public PoolingLayerInfo(){}
         public PoolingLayerInfo(LayerInfo info) : base(info) { }
+        
+        public override LayerDiscriminator GetDiscriminator()
+        {
+            return LayerDiscriminator.PoolingLayerInfo;
+        }
     }
 
     [Serializable]
     public class PaddingLayerInfo : LayerInfo
     {
         public int Padding { get; set; }
+        public PaddingLayerInfo(){}
         
         public PaddingLayerInfo(LayerInfo info) : base(info) { }
+        
+        public override LayerDiscriminator GetDiscriminator()
+        {
+            return LayerDiscriminator.PaddingLayerInfo;
+        }
     }
-    
-    
+
 }    
