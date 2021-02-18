@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Text;
 using Network;
@@ -47,23 +48,23 @@ namespace MnistSample
             Console.Clear();
         }
 
-        public static List<Example> CreateTrainDataset()
+        public static List<Example> CreateTrainDataset(int batch)
         {
-            return CreateDataset(TrainImagesFile, TrainLabelsFile);
+            return CreateDataset(TrainImagesFile, TrainLabelsFile, batch);
+        }
+            
+        public static List<Example> CreateTestDataset(int batch)
+        {
+            return CreateDataset(TestImagesFile, TestLabelsFile, batch);
         }
         
-        public static List<Example> CreateTestDataset()
-        {
-            return CreateDataset(TestImagesFile, TestLabelsFile);
-        }
-        
-        private static List<Example> CreateDataset(string imagesFile, string labelsFile)
+        private static List<Example> CreateDataset(string imagesFile, string labelsFile, int batch)
         {
             var examples = new List<Example>();
             DownloadDataset();
 
-            using var fs = new FileStream(TrainImagesFile, FileMode.Open);
-            using var fs2 = new FileStream(TrainLabelsFile, FileMode.Open);
+            using var fs = new FileStream(imagesFile, FileMode.Open);
+            using var fs2 = new FileStream(labelsFile, FileMode.Open);
             using var zip1 = new GZipStream(fs, CompressionMode.Decompress);
             using var zip2 = new GZipStream(fs2, CompressionMode.Decompress);
             using var reader = new BinaryReader(zip1, Encoding.UTF8);
@@ -71,8 +72,14 @@ namespace MnistSample
             reader.ReadInt32();    
             reader.ReadInt32();
             reader.ReadInt32();
+            reader.ReadInt32();
             reader2.ReadInt32();
             reader2.ReadInt32();
+            int count = 0;
+            var labels = new int[batch];
+            var data = new float[0];
+            var outTensor = TensorBuilder.Create().OfShape(new Shape(batch, 1, 1, 10));
+            var tensor = TensorBuilder.Create().OfShape(new Shape(batch, 1, 28, 28));
             while (fs.Position != fs.Length)
             {
                 float[] norm = new float[784];
@@ -81,17 +88,34 @@ namespace MnistSample
                 {
                     norm[i] = (float) b[i] / 255;
                 }
-                int label = reader2.ReadByte();
 
-                var outTensor = TensorBuilder.Create(Global.ComputationType).OfShape(new Shape(1, 1, 1, 10));
-                outTensor[label] = 1;
-                var tensor = TensorBuilder.Create(Global.ComputationType).OfShape(new Shape(1, 1, 28, 28));
-                tensor.Storage.SetData(norm);
-                examples.Add(new Example
+                data = data.Concat(norm).ToArray();
+                int label = reader2.ReadByte();
+                labels[count] = label;
+                
+                if (count == batch - 1)
                 {
-                    Input = tensor,
-                    Output = outTensor
-                });
+                    for (int i = 0; i < labels.Length; i++)
+                    {
+                        outTensor[i, 0, 0, labels[i]] = 1;
+                        labels[i] = 0;
+                    }
+
+                    tensor.Storage.Data = data;
+                    examples.Add(new Example
+                    {
+                        Input = tensor,
+                        Output = outTensor
+                    });
+                    
+                    tensor = TensorBuilder.Create().OfShape(new Shape(batch, 1, 28, 28));
+                    outTensor = TensorBuilder.Create().OfShape(new Shape(batch, 1, 1, 10));
+                    data = new float[0];
+                    count = 0;
+                    continue;
+                }
+
+                count++;
             }
 
             return examples;
