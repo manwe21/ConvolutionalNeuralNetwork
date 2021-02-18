@@ -4,7 +4,7 @@ namespace CpuTensorTests
 {
     public static class FloatComparison
     {
-        private const float Tolerance = 1e-4f;
+        private const float Tolerance = 0.001f;
 
         public static bool AreEqual(float a, float b)
         {

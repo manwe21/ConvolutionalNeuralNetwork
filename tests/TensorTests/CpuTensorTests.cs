@@ -7,8 +7,7 @@ namespace CpuTensorTests
     {
         protected override Tensor CreateTensor(Shape shape, float[] data)
         {
-            Tensor t = new CpuTensor(new CpuStorage(shape));
-            t.Storage.SetData(data);
+            Tensor t = CpuTensor.Build.OfStorage(new CpuStorage(shape, data));
             return t;
         }
 
