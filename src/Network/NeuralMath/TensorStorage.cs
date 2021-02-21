@@ -61,11 +61,8 @@ namespace Network.NeuralMath
         protected TensorStorage(Shape shape, float[] data)
         {
             Data = data;
-            //SetData(data);
             Shape = shape;
         }
-
-        //public abstract void SetData(float[] data);
 
         public void Reshape(Shape shape)
         {
