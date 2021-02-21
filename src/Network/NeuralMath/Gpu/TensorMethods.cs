@@ -138,30 +138,20 @@ namespace Network.NeuralMath.Gpu
             CudaDeviceVariable<float> x,
             CudaDeviceVariable<float> result,
             int padSize,
-            int size,
-            int width,
-            int chw,
-            int hw,
-            int resChannels,
-            int resHeight,
-            int resWidth)
+            TensorDescriptor xDesc,
+            TensorDescriptor resDesc)
         {
-            _kernelManager.CalcDim(size, out var gridX, out var blockX);
             _kernelManager.LaunchKernel(
                 "pad",
-                gridX,
-                blockX,
+                resDesc.Size,
                 0,
                 x.DevicePointer,
                 result.DevicePointer,
                 padSize,
-                size,
-                width,
-                chw,
-                hw,
-                resChannels,
-                resHeight,
-                resWidth);    
+                xDesc.Width,
+                xDesc.Channels * xDesc.Height * xDesc.Width,
+                xDesc.Height * xDesc.Width,
+                resDesc);    
         }
 
         public void MaxPool(
