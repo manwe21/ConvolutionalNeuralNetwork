@@ -44,9 +44,9 @@ namespace Network.NeuralMath
         
         public int Size => Storage.Size;
 
-        public abstract void Dot2D(Tensor tensor, Tensor result);   
+        public abstract void Dot2D(Tensor b, Tensor c);   
 
-        public abstract void Dot2D(Tensor b, int ha, int wa, int hb, int wb, Shape resultShape, Tensor result);
+        public abstract void Dot2D(Tensor b, int ha, int wa, int hb, int wb, Shape resultShape, Tensor c);
 
         public abstract void Transpose2D(Tensor result);
             
@@ -177,9 +177,14 @@ namespace Network.NeuralMath
             return new Shape(a[0], 1, a[2], b[3]);
         }
 
-        public static Shape GetDot2DTransAShape(Shape a, Shape b)
+        public static Shape Get2DByColumnsShape(Shape input)
         {
-            return new Shape(a[0], 1, a[3], b[3]);
+            return new Shape(1, 1, input[0] * input[2] * input[3], input[1]);
+        }
+
+        public static Shape Get2DByRowsShape(Shape input)
+        {
+            return new Shape(1, 1, input[1], input[0] * input[2] * input[3]);
         }
 
         public override string ToString()
