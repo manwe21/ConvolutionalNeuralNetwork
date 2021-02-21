@@ -71,8 +71,8 @@ namespace Network.NeuralMath
         public abstract void Pad(int value, Tensor result);
         public abstract void PadDx(int value, Tensor dy, Tensor result);    
                             
-        public abstract void FullyConnectedDx(Tensor weights, Tensor dy, Tensor transBuffer, Tensor result);
-        public abstract void FullyConnectedDw(Tensor dy, Tensor transBuffer, Tensor result);
+        public abstract void FullyConnectedDx(Tensor weights, Tensor dy, Tensor transBuffer, Tensor dx);
+        public abstract void FullyConnectedDw(Tensor dy, Tensor transBuffer, Tensor dw);
     
         public void Convolution(Tensor filters, int stride, Tensor result)
         {
@@ -104,7 +104,7 @@ namespace Network.NeuralMath
         public abstract void ConvolutionDw(Tensor filters, Tensor dy, Tensor dy2DBuffer, Tensor dot2DBuffer, Tensor img2ColX, Tensor dw);    
         
         public abstract void MaxPool(int poolSize, int stride, Tensor result, Tensor indexes);
-        public abstract void MaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor result);            
+        public abstract void MaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor dx);            
     
         public abstract void Activation(IFunction function, Tensor result);
         public abstract void ActivationDx(IFunction function, Tensor dy, Tensor dx);
