@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CpuTensorTests
+namespace TensorTests
 {
     public static class FloatComparison
     {

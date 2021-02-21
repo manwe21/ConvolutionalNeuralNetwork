@@ -1,7 +1,7 @@
 ﻿using Network.NeuralMath;
 using Network.NeuralMath.Cpu;
 
-namespace CpuTensorTests
+namespace TensorTests
 {
     public class CpuTensorTests : TensorTests
     {

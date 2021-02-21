@@ -1,7 +1,8 @@
 ﻿using Network.NeuralMath;
+using Network.NeuralMath.Functions.LossFunctions;
 using Xunit;
 
-namespace CpuTensorTests
+namespace TensorTests
 {
     public abstract class TensorTests
     {
@@ -673,7 +674,7 @@ namespace CpuTensorTests
             Tensor dy = CreateTensor(dyShape, dyData);
             Tensor dw = CreateTensor();
             
-            x.ConvolutionDw(w, dy, CreateTensor(), CreateTensor(), CreateTensor(), dw);
+            x.ConvolutionDw(w, dy, 1, dw);
             
             Assert.Equal(2, dw.Batch);
             Assert.Equal(2, dw.Channels);
@@ -871,6 +872,46 @@ namespace CpuTensorTests
             Assert.Equal(2, dx.Height);
             Assert.Equal(2, dx.Width);
             Assert.True(FloatComparison.AreEqual(dyData, dx.Storage.Data));
+        }
+
+        [Fact]
+        public void CrossEntropy()
+        {
+            var oData = new [] { 0.5f, 1, 2, 0.1f, 1.2f, 1.4f, 3, 1, 2.5f, 1.1f };
+            var tData = new[] { 1, 0.2f, 2.3f, 0.3f, 2, 2, 0.5f, 1, 2.8f, 0.05f };
+            
+            var shape = new Shape(2, 1, 1, 5);
+            
+            var o = CreateTensor(shape, oData);
+            var t = CreateTensor(shape, tData);
+            var loss = CreateTensor();
+            
+            o.Loss(t, new CrossEntropy(), loss);
+            
+            Assert.Equal(2, loss.Size);
+            Assert.Equal(2, loss.Batch);
+            Assert.True(FloatComparison.AreEqual(-0.575f, loss[0]));
+            Assert.True(FloatComparison.AreEqual(-3.792f, loss[1]));
+        }
+
+        [Fact]
+        public void MeanSquaredError()
+        {
+            var oData = new [] { 0.5f, 1, 2, 0.1f, 1.2f, 1.4f, 3, 1, 2.5f, 1.1f };
+            var tData = new[] { 1, 0.2f, 2.3f, 0.3f, 2, 2, 0.5f, 1, 2.8f, 0.05f };
+            
+            var shape = new Shape(2, 1, 1, 5);
+            
+            var o = CreateTensor(shape, oData);
+            var t = CreateTensor(shape, tData);
+            var loss = CreateTensor();
+            
+            o.Loss(t, new MeanSquaredError(), loss);
+            
+            Assert.Equal(2, loss.Size);
+            Assert.Equal(2, loss.Batch);
+            Assert.True(FloatComparison.AreEqual(0.331f, loss[0]));
+            Assert.True(FloatComparison.AreEqual(1.56f, loss[1]));
         }
     }
 }

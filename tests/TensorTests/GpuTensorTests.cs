@@ -1,7 +1,7 @@
 ﻿using Network.NeuralMath;
 using Network.NeuralMath.Gpu;
 
-namespace CpuTensorTests
+namespace TensorTests
 {
     public class GpuTensorTests : TensorTests
     {
