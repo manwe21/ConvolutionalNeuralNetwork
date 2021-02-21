@@ -50,6 +50,9 @@ namespace Network.NeuralMath.Cpu
         
         public override void AllocateMemory(Shape shape)
         {
+            if(IsMemoryAllocated)
+                return;
+            
             _array = new float[shape.Size];
             Shape = shape;
             IsMemoryAllocated = true;

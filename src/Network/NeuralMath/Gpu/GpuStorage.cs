@@ -66,6 +66,9 @@ namespace Network.NeuralMath.Gpu
 
         public override void AllocateMemory(Shape shape)
         {
+            if (IsMemoryAllocated)
+                return;
+            
             DeviceStorage = new CudaDeviceVariable<float>(shape.Size);
             Shape = shape;
             IsMemoryAllocated = true;
