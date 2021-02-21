@@ -114,7 +114,7 @@ namespace BostonHousing
             
             var trainer = new MiniBatchTrainer(examples, new MiniBatchTrainerSettings
             {
-                BatchSize = 2,
+                BatchSize = 32,
                 EpochsCount = 50,
                 LossFunction = new MeanSquaredError(),
                 Metric = new MeanAbsoluteError(),

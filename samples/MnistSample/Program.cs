@@ -4,10 +4,7 @@ using Network;
 using Network.Model;
 using Network.Model.WeightsInitializers;
 using Network.NeuralMath;
-using Network.NeuralMath.Cpu;
 using Network.NeuralMath.Functions.LossFunctions;
-using Network.NeuralMath.Gpu;
-using Network.Serialization.Serializers;
 using Training.Data;
 using Training.Metrics;
 using Training.Optimizers.Cpu;
@@ -31,14 +28,11 @@ namespace MnistSample
             Global.ComputationType = ComputationType.Gpu;
             NeuralLayeredNetwork network = new NeuralLayeredNetwork(new Shape(BatchSize, 1, 28, 28));
             network
-                .Conv(64, 3, 1, new HeInitializer())
-                .Relu()
-                .MaxPool(2, 2)
-                .Conv(64, 3, 1, new HeInitializer())
+                .Conv(8, 3, 1, new HeInitializer())
                 .Relu()
                 .MaxPool(2, 2)
                 .Flatten()
-                .Fully(128, new HeInitializer())
+                .Fully(64, new HeInitializer())
                 .Relu()
                 .Fully(10, new HeInitializer())
                 .Softmax();
@@ -55,12 +49,11 @@ namespace MnistSample
             });
             trainer.AddEventHandler(new ConsoleLogger());
             trainer.TrainModel(network);
-            Console.Write(network.Forward(_testExamples[0].Input));
             
             ITester tester = new ClassificationTester(_testExamples);
-            //Console.WriteLine("Testing...");
-            //var testResult = tester.TestModel(network);
-            //Console.WriteLine(testResult);
+            Console.WriteLine("Testing...");
+            var testResult = tester.TestModel(network);
+            Console.WriteLine(testResult);
 
         }
     }
