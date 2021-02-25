@@ -53,6 +53,8 @@ namespace Network.NeuralMath
         //result tensor: shape = Bx1x1x2 ([0] - max value, [1] - max value index(in batch))
         public abstract void Max(Tensor result);
 
+        public abstract void Average(Tensor result);
+
         public abstract void Sum(Tensor tensor); 
         
         //immutable version
@@ -76,17 +78,15 @@ namespace Network.NeuralMath
     
         public void Convolution(Tensor filters, int stride, Tensor result)
         {
-            var tensorType = result.GetType();
-            var builder = TensorBuilder.OfType(tensorType);
-            Convolution(filters, stride, 0, builder.Empty(), builder.Empty(), result);
+            var builder = TensorBuilder.OfType(filters.GetType());
+            Convolution(filters, stride, builder.Empty(), builder.Empty(), result);
         }
         
-        public abstract void Convolution(Tensor filters, int stride, int padding, Tensor img2ColBuffer, Tensor dotBuffer, Tensor result);
+        public abstract void Convolution(Tensor filters, int stride, Tensor img2ColBuffer, Tensor dotBuffer, Tensor result);
 
         public void ConvolutionDx(Tensor filters, Tensor dy, Tensor dx)
         {
-            var tensorType = dx.GetType();
-            var builder = TensorBuilder.OfType(tensorType);
+            var builder = TensorBuilder.OfType(filters.GetType());
             ConvolutionDx(filters, dy, builder.Empty(), builder.Empty(), builder.Empty(), builder.Empty(), builder.Empty(), dx);
         }
             
@@ -94,14 +94,13 @@ namespace Network.NeuralMath
 
         public void ConvolutionDw(Tensor filters, Tensor dy, int stride, Tensor dw)
         {
-            var tensorType = dw.GetType();
-            var builder = TensorBuilder.OfType(tensorType);
-            var img2Col = TensorBuilder.OfType(tensorType).Empty();
-            Im2Col(filters.Height, filters.Width, stride, img2Col);
-            ConvolutionDw(filters, dy, builder.Empty(), builder.Empty(), img2Col, dw);
+            var builder = TensorBuilder.OfType(filters.GetType());
+            var im2ColTensor = builder.Empty();
+            Im2Col(filters.Height, filters.Width, stride, im2ColTensor);
+            ConvolutionDw(filters, dy, builder.Empty(), builder.Empty(), im2ColTensor, dw);
         }
         
-        public abstract void ConvolutionDw(Tensor filters, Tensor dy, Tensor dy2DBuffer, Tensor dot2DBuffer, Tensor img2ColX, Tensor dw);    
+        public abstract void ConvolutionDw(Tensor filters, Tensor dy, Tensor dy2DBuffer, Tensor dotBuffer, Tensor img2ColX, Tensor dw);    
         
         public abstract void MaxPool(int poolSize, int stride, Tensor result, Tensor indexes);
         public abstract void MaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor dx);            
@@ -122,6 +121,10 @@ namespace Network.NeuralMath
     
         public abstract void ToFlatten(Tensor tensor);
         public abstract void FlattenDx(Tensor dy, Tensor dx);
+        
+        public abstract void To2DByRows(Tensor result);
+        public abstract void To2DByColumns(Tensor result);
+        public abstract void ReshapeForBatches(Shape resultShape, Tensor result);
 
         public static Shape GetConvolutionalShape(Shape input, Shape filters, int stride, int padding)
         {

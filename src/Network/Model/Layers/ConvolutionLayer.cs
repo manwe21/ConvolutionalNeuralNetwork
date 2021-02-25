@@ -109,7 +109,7 @@ namespace Network.Model.Layers
         public override Tensor Forward(Tensor tensor)
         {
             Input = tensor;
-            Input.Convolution(ParametersStorage.Weights, Stride, 0, _img2ColBuffer, _dotBuffer, Output);
+            Input.Convolution(ParametersStorage.Weights, Stride, _img2ColBuffer, _dotBuffer, Output);
             return Output;
         }
 

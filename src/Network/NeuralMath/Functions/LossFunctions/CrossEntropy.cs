@@ -18,7 +18,7 @@ namespace Network.NeuralMath.Functions.LossFunctions
                     count++;
                 }
 
-                loss[b, 0, 0, 0] = -sum;
+                loss[b] = -sum;
             }
 
         }
