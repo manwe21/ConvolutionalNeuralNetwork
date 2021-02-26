@@ -7,7 +7,14 @@ using Network.NeuralMath;
 {
     public class Dataset<TTensor> : IExamplesSource, IDisposable where TTensor : Tensor
     {
+        private const int ExamplesStartPosition = 20;   //5 parameters * 4 bytes
+        
         private List<Example> _loadedExamples = new List<Example>();
+        
+        //Indicates how much examples were actually loaded
+        //It is necessary because in some cases _realCount < _loadedExamples.Count
+        //We cannot allocate memory for _loadedExamples List on each batch loading,
+        //since it is strongly affects performance on GPU
         private int _realCount;
 
         private Func<float, float> _dataNormalizer;
@@ -16,9 +23,9 @@ using Network.NeuralMath;
         private BinaryReader _binaryReader;
 
         private Shape _shape;
-        private int _classes;
+        private int _classesCount;
         
-        public int LoadingBatch { get; private set; }
+        public int LoadingBatchSize { get; private set; }
         public int ExamplesCount { get; private set; }
         public int TotalBatches { get; private set; }
 
@@ -42,38 +49,38 @@ using Network.NeuralMath;
             
             _fileStream = new FileStream(datasetPath, FileMode.Open);
             _binaryReader = new BinaryReader(_fileStream);
+            _dataNormalizer = dataNormalizer;
 
             var c = _binaryReader.ReadInt32();
             var h = _binaryReader.ReadInt32();
             var w = _binaryReader.ReadInt32();
-            _shape = new Shape(1, c, h, w);
-            
             ExamplesCount = _binaryReader.ReadInt32();
-            _classes = _binaryReader.ReadInt32();
+            _classesCount = _binaryReader.ReadInt32();
             
-            LoadingBatch = batchSize != -1 ? batchSize : ExamplesCount;
-            TotalBatches = (int)Math.Ceiling((float) ExamplesCount / LoadingBatch);
-            _dataNormalizer = dataNormalizer;
-            
-            for (int i = 0; i < LoadingBatch; i++)
+            _shape = new Shape(1, c, h, w);
+            LoadingBatchSize = batchSize != -1 ? batchSize : ExamplesCount;
+            TotalBatches = (int)Math.Ceiling((float) ExamplesCount / LoadingBatchSize);
+
+            var tensorBuilder = TensorBuilder.OfType(typeof(TTensor));
+            for (int i = 0; i < LoadingBatchSize; i++)
             {
                 _loadedExamples.Add(new Example
                 {
-                    Input = (TTensor)TensorBuilder.OfType(typeof(TTensor)).OfShape(_shape),
-                    Output = (TTensor)TensorBuilder.OfType(typeof(TTensor)).OfShape(new Shape(1, 1, 1, _classes))
+                    Input = (TTensor)tensorBuilder.OfShape(_shape),
+                    Output = (TTensor)tensorBuilder.OfShape(new Shape(1, 1, 1, _classesCount))
                 });
             }
         }
 
-        private void LoadNextBatch()    
+        private void LoadNextBatch()
         {
-            _realCount = LoadingBatch;
-            for (int i = 0; i < LoadingBatch; i++)
+            _realCount = LoadingBatchSize;
+            for (int i = 0; i < LoadingBatchSize; i++)
             {
                 if (_fileStream.Position >= _fileStream.Length)
                 {
                     _realCount = i;
-                    _fileStream.Position = 20;
+                    _fileStream.Position = ExamplesStartPosition;
                     return;
                 }
 
@@ -87,7 +94,7 @@ using Network.NeuralMath;
                     normData[j] = _dataNormalizer(data[j]);
                 }
                 
-                float[] outData = new float[_classes];
+                float[] outData = new float[_classesCount];
                 outData[label] = 1;
 
                 _loadedExamples[i].Input.Storage.Data = normData;
@@ -97,7 +104,7 @@ using Network.NeuralMath;
     
         public IEnumerable<Example> GetExamples()
         {
-            _fileStream.Position = 20;
+            _fileStream.Position = ExamplesStartPosition;
             for (int b = 0; b < TotalBatches; b++)
             {
                 LoadNextBatch();

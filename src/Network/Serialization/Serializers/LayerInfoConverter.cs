@@ -36,7 +36,7 @@ namespace Network.Serialization.Serializers
             return layerInfo;
         }
         
-        //looks bad
+        //looks bad, but json serializer cannot deal with polymorphism
         public override void Write(Utf8JsonWriter writer, LayerInfo value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();

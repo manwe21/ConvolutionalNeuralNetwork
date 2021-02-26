@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Network.Model.Exceptions;
 using Network.Model.Layers;
 using Network.NeuralMath;
 using Network.Serialization;
@@ -46,8 +47,8 @@ namespace Network.Model
 
         public Tensor Forward(Tensor input)
         {
-            if(!_layers.All(l => l.IsInit))
-                throw new Exception("Model is not initialized");
+            if (!_layers.All(l => l.IsInit))
+                throw new ModelIsNotInitializedException();
             
             if (input.Storage.Shape != InputShape)
                 throw new ArgumentException("Input tensor has incompatible shape");
@@ -73,27 +74,18 @@ namespace Network.Model
         public void AddLayer(BaseLayer layer)
         {
             Shape inputShape;
-            if (LayersCount > 0)
+            if (Layers.Any())
             {
-                inputShape = _layers.Last().OutputShape;
-                layer.Prev = _layers.Last();
-                _layers.Last().Next = layer;
+                var lastLayer = _layers.Last();
+                inputShape = lastLayer.OutputShape;
+                layer.Prev = lastLayer;
+                lastLayer.Next = layer;
             }
             else inputShape = InputShape;
             
             if (!layer.IsInit)
                 layer.Initialize(inputShape);
             _layers.Add(layer);
-        }
-
-        public void Save(string filePath, INetworkSerializer serializer)
-        {
-            serializer.Serialize(this, filePath);
-        }
-
-        public static NeuralLayeredNetwork Load(string filePath, INetworkSerializer serializer)
-        {
-            return serializer.Deserialize(filePath);
         }
 
         public NetworkInfo GetNetworkInfo()
