@@ -14,12 +14,14 @@ namespace TensorTests
         {
             Shape shapeA = new Shape(1, 1, 3, 2);
             Shape shapeB = new Shape(1, 1, 2, 4);
+            
             float[] dataA =
             {
                 0.2f, 1,
                 2.8f, 3,
                 4.1f, 5
             };
+            
             float[] dataB =
             {
                 0.1f, 2, 3.5f, 6,
@@ -52,6 +54,7 @@ namespace TensorTests
             Shape shapeA = new Shape(3, 1, 1, 2);
             Shape shapeB = new Shape(1, 1, 2, 4);
             Shape shapeC = new Shape(3, 1, 1, 4);
+            
             float[] dataA = 
             {
                 0.2f, 1,
@@ -60,6 +63,7 @@ namespace TensorTests
                 
                 4.1f, 5
             };
+            
             float[] dataB =
             {
                 0.1f, 2, 3.5f, 6,
@@ -134,6 +138,7 @@ namespace TensorTests
                 12, 13,
                 14, 15
             };
+            
             float[] res =
             {
                 3f, 2,
@@ -191,6 +196,7 @@ namespace TensorTests
         {
             Shape shapeA = new Shape(1, 2, 2, 2);
             Shape shapeB = new Shape(1, 2, 2, 2);
+            
             float[] dataA =
             {
                 0.2f, 1,
@@ -199,6 +205,7 @@ namespace TensorTests
                 4.1f, 5,
                 1, 2.2f
             };
+            
             float[] dataB =
             {
                 0.1f, 2,
@@ -207,6 +214,7 @@ namespace TensorTests
                 4, 8.8f,
                 1.3f, 4.8f
             };
+            
             float[] res =
             {
                 0.3f, 3,
@@ -235,6 +243,7 @@ namespace TensorTests
                 0, 0,
                 0, 0
             };
+            
             float[] res =
             {
                 3, 3,
@@ -243,6 +252,7 @@ namespace TensorTests
                 3, 3,
                 3, 3
             };
+            
             Tensor t = CreateTensor(shape, data);
             
             t.Fill(3);
@@ -274,6 +284,7 @@ namespace TensorTests
                 7, 7.2f, 0.1f,
                 0, 0, 2
             };
+            
             float[] res = 
             { 
                 0.2f, 1, 3, 4.1f, 1, 0, 2.1f, 4.5f,
@@ -309,6 +320,7 @@ namespace TensorTests
                 4.1f, 5, 1.1f, 2, 5, 8, 2.1f, 2.1f,
                 0.1f, 1, 3.5f, 0.05f, 5, 0.8f, 3, 0
             };
+            
             float[] res =
             {
                 4.1f, 5,
@@ -323,6 +335,7 @@ namespace TensorTests
                 5, 0.8f,
                 3, 0 
             };
+            
             var t = CreateTensor(shape, data);
             var tRes = CreateTensor();
             
@@ -372,6 +385,7 @@ namespace TensorTests
             Shape xShape = new Shape(2, 1, 1, 4);
             Shape dyShape = new Shape(2, 1, 1, 2);
             Shape wShape = new Shape(1, 1, 4, 2);
+            
             float[] wData = 
             {
                 0, 1.5f,
@@ -379,24 +393,28 @@ namespace TensorTests
                 5, 2.5f,
                 0.1f, 4
             };
+            
             float[] xData =
             {
                 2, 1.5f, 0.1f, 0.25f,
                 
                 2, 1.5f, 0.1f, 0.25f
             };
+            
             float[] dyData =
             {
                 1, 2.5f,
                 
                 0, 1.2f
             };
+            
             float[] dxExp =
             {
                 3.75f, 2.5f, 11.25f,
                 
                 10.1f, 1.8f, 0.24f, 3, 4.8f
             };
+            
             Tensor x = CreateTensor(xShape, xData);
             Tensor w = CreateTensor(wShape, wData);
             Tensor dy = CreateTensor(dyShape, dyData);
@@ -416,18 +434,21 @@ namespace TensorTests
         {
             Shape xShape = new Shape(2, 1, 1, 4);
             Shape dyShape = new Shape(2, 1, 1, 2);
+            
             float[] xData = 
             { 
                 2, 1.5f, 0.1f, 0.25f,
                 
                 0, 3.5f, 7.1f, 3.29f
             };
+            
             float[] dyData = 
             {                 
                 1, 2.5f,
                 
                 0, 1.2f 
             };
+            
             float[] dwExp =
             {
                 2, 5,
@@ -453,6 +474,7 @@ namespace TensorTests
         {
             Shape xShape = new Shape(2, 2, 3, 3);
             Shape wShape = new Shape(2, 2, 2, 2);
+            
             float[] xData =
             {
                 //1st batch
@@ -473,6 +495,7 @@ namespace TensorTests
                 7, 7.2f, 0.1f,
                 0, 0, 2
             };
+            
             float[] wData =
             {
                 0.1f, 2, 
@@ -487,6 +510,7 @@ namespace TensorTests
                 0, 3.5f,
                 4, 0.5f
             };
+            
             float[] res =
             {
                 101, 143.18f,
@@ -505,7 +529,10 @@ namespace TensorTests
             Tensor w = CreateTensor(wShape, wData);
             Tensor y = CreateTensor();
             
-            x.Convolution(w, 1, y);
+            Tensor im2ColBuffer = CreateTensor();
+            Tensor dotBuffer = CreateTensor();
+            
+            x.Convolution(w, 1, im2ColBuffer, dotBuffer, y);
             
             Assert.Equal(2, y.Batch);
             Assert.Equal(2, y.Channels);
@@ -521,6 +548,7 @@ namespace TensorTests
             Shape xShape = new Shape(2, 2, 3, 3);
             Shape wShape = new Shape(2, 2, 2, 2);
             Shape dyShape = new Shape(2, 2, 2, 2);
+            
             float[] xData =
             {
                 //1st batch
@@ -541,6 +569,7 @@ namespace TensorTests
                 7, 7.2f, 0.1f,
                 0, 0, 2
             };
+            
             float[] wData =
             {
                 0.1f, 2,
@@ -555,6 +584,7 @@ namespace TensorTests
                 0, 3.5f,
                 4, 0.5f
             };
+            
             float[] dyData =
             {
                 10, 1.1f,
@@ -569,6 +599,7 @@ namespace TensorTests
                 4.7f, 1,
                 7.7f, 0.7f
             };
+            
             float[] dxExp =
             {
                 5.7f, 28.01f, 2.2f,
@@ -592,6 +623,7 @@ namespace TensorTests
             var x = CreateTensor(xShape, xData);
             var dy = CreateTensor(dyShape, dyData);
             var dx = CreateTensor();
+            
             x.ConvolutionDx(w, dy,  CreateTensor(), CreateTensor(), CreateTensor(), CreateTensor(), CreateTensor(), dx);
             
             Assert.Equal(2, dx.Batch);
@@ -605,8 +637,10 @@ namespace TensorTests
         public void ConvolutionDw()
         {
             Shape xShape = new Shape(2, 2, 3, 3);
+            Shape im2ColXShape = new Shape(1, 1, 8, 8);
             Shape wShape = new Shape(2, 2, 2, 2);
             Shape dyShape = new Shape(2, 2, 2, 2);
+            
             float[] xData =
             {
                 //1st batch
@@ -627,6 +661,19 @@ namespace TensorTests
                 7, 7.2f, 0.1f,
                 0, 0, 2
             };
+            
+            float[] im2ColXData =
+            {
+                0.2f, 1, 3, 4.1f, 1, 0, 2.1f, 4.5f,
+                1, 2.8f, 4.1f, 5, 0, 2, 4.5f, 0,
+                3, 4.1f, 1, 2.2f, 2.1f, 4.5f, 3, 8,
+                4.1f, 5, 2.2f, 4, 4.5f, 0, 8, 1, 
+                1.8f, 5, 2, 2.1f, 2, 3, 7, 7.2f,
+                5, 8, 2.1f, 0, 3, 4, 7.2f, 0.1f,
+                2, 2.1f, 0.4f, 0.9f, 7, 7.2f, 0, 0,
+                2.1f, 0, 0.9f, 0, 7.2f, 0.1f, 0, 2 
+            };
+            
             float[] wData =
             {
                 0.1f, 2,
@@ -641,6 +688,7 @@ namespace TensorTests
                 0, 3.5f,
                 4, 0.5f
             };
+            
             float[] dyData =
             {
                 10, 1.1f,
@@ -655,6 +703,7 @@ namespace TensorTests
                 4.7f, 1,
                 7.7f, 0.7f
             };
+            
             float[] dwExp =
             {
                 38.31f, 53.78f,
@@ -669,12 +718,17 @@ namespace TensorTests
                 152.37f, 175.85f,
                 76.88f, 51.87f
             };
+            
             Tensor x = CreateTensor(xShape, xData);
+            Tensor im2ColX = CreateTensor(im2ColXShape, im2ColXData);
             Tensor w = CreateTensor(wShape, wData);
             Tensor dy = CreateTensor(dyShape, dyData);
             Tensor dw = CreateTensor();
             
-            x.ConvolutionDw(w, dy, 1, dw);
+            Tensor dy2DBuffer = CreateTensor();
+            Tensor dot2DBuffer = CreateTensor();
+            
+            x.ConvolutionDw(w, dy, dy2DBuffer, dot2DBuffer, im2ColX, dw);
             
             Assert.Equal(2, dw.Batch);
             Assert.Equal(2, dw.Channels);
@@ -705,6 +759,7 @@ namespace TensorTests
                 7, 7.2f, 0.1f,
                 0, 0, 2
             };
+            
             float[] res =
             {
                 4.1f, 5,
@@ -719,10 +774,12 @@ namespace TensorTests
                 7.2f, 7.2f,
                 7.2f, 7.2f
             };
+            
             float[] maxInd =
             {
                 4, 5, 4, 5, 10, 11, 13, 13, 22, 22, 25, 25, 31, 31, 31, 31
             };
+            
             Tensor t = CreateTensor(shape, data);
             Tensor tRes = CreateTensor();
             Tensor tMaxInd = CreateTensor();
@@ -752,6 +809,7 @@ namespace TensorTests
                 5, 8,
                 2.1f, 2.1f
             };
+            
             float[] maxInd = { 4, 5, 4, 5, 10, 11, 13, 13 };
             float[] dx = new float[18];
             dx[4] = 4.1f;
@@ -759,6 +817,7 @@ namespace TensorTests
             dx[10] = 5;
             dx[11] = 8;
             dx[13] = 2.1f;
+            
             Tensor xTensor = CreateTensor(xShape, x);
             Tensor dyTensor = CreateTensor(dyShape, dy);
             Tensor maxTensor = CreateTensor(maxIndShape, maxInd);
@@ -782,11 +841,13 @@ namespace TensorTests
                 1, 4.5f, 0, 2, 3.1f,
                 0, 3.5f, 0.8f, 0.25f, 2.5f
             };
+            
             float[] yExp =
             {
                 0.022f, 0.7299f, 0.0081f, 0.0599f, 0.1799f,
                 0.02f, 0.66486f, 0.044682f, 0.02577f, 0.24459f
             };
+            
             Tensor x = CreateTensor(shape, xData);
             Tensor y = CreateTensor();
             Tensor max = CreateTensor();
@@ -805,16 +866,19 @@ namespace TensorTests
                 1, 4.5f, 0, 2, 3.1f,
                 0, 1.5f, 2.9f, 1, 0.2f
             };
+            
             float[] dyData =
             {
                 0.5f, 3, 0.4f, 1, 2.5f, 
                 0.01f, 1.5f, 0, 3.1f, 0.28f
             };
+            
             float[] dxExp =
             {
                 -23.25f, -93.375f, 0, -45.5f, -65.875f,
                 0, -5.859f, -15.6774f, -2.306f, -1.0252f
             };
+            
             Tensor dx = CreateTensor();
             Tensor y = CreateTensor(yShape, yData);
             Tensor dy = CreateTensor(dyShape, dyData);
@@ -842,6 +906,7 @@ namespace TensorTests
                 13, 14,
                 15, 16
             };
+            
             Tensor x = CreateTensor(shape, data);
             Tensor y = CreateTensor();
             
@@ -859,8 +924,10 @@ namespace TensorTests
         {    
             Shape dyShape = new Shape(1, 1, 1, 16);
             Shape xShape = new Shape(2, 2, 2, 2);
+            
             float[] dyData = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
             float[] xData = new float[16];
+            
             Tensor dy = CreateTensor(dyShape, dyData);
             Tensor x = CreateTensor(xShape, xData);
             Tensor dx = CreateTensor();
