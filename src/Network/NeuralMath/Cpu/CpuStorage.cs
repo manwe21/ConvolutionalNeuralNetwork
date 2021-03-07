@@ -4,9 +4,9 @@ namespace Network.NeuralMath.Cpu
 {
     public class CpuStorage : TensorStorage
     {
-        private float[] _array;
+        private float[] _data;
         
-        public CpuStorage()        
+        public CpuStorage()
         {
         }    
 
@@ -22,19 +22,19 @@ namespace Network.NeuralMath.Cpu
 
         public override float[] Data
         {
-            get => _array;
+            get => _data;
             set
             {
                 if (IsMemoryAllocated)
                 {
-                    if(_array.Length != value.Length)
+                    if(_data.Length != value.Length)
                         throw new ArgumentException(nameof(value));
-                    _array = value;
+                    _data = value;
                 }
                 else
                 {
-                    _array = value;
-                    Shape = new Shape(1, 1, 1, _array.Length);
+                    _data = value;
+                    Shape = new Shape(1, 1, 1, _data.Length);
                     IsMemoryAllocated = true;
                 }
             }
@@ -53,49 +53,49 @@ namespace Network.NeuralMath.Cpu
             if(IsMemoryAllocated)
                 return;
             
-            _array = new float[shape.Size];
+            _data = new float[shape.Size];
             Shape = shape;
             IsMemoryAllocated = true;
         }
 
         public override float Get(int i)
         {
-            return _array[i];
+            return _data[i];
         }
 
         public override float Get(int i, int j)
         {
-            return _array[i * Width + j];
+            return _data[i * Width + j];
         }
 
         public override float Get(int c, int i, int j)
         {
-            return _array[c * Hw + i * Width + j];
+            return _data[c * Hw + i * Width + j];
         }
 
         public override float Get(int b, int c, int i, int j)
         {
-            return _array[c * Hw + i * Width + j + b * Chw];
+            return _data[c * Hw + i * Width + j + b * Chw];
         }
 
         public override void Set(int i, float value)
         {
-            _array[i] = value;
+            _data[i] = value;
         }
 
         public override void Set(int i, int j, float value)
         {
-            _array[i * Width + j] = value;
+            _data[i * Width + j] = value;
         }
 
         public override void Set(int c, int i, int j, float value)
         {
-            _array[c * Hw + i * Width + j] = value;
+            _data[c * Hw + i * Width + j] = value;
         }
 
         public override void Set(int b, int c, int i, int j, float value)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
         {
-            _array[c * Hw + i * Width + j + b * Chw] = value;
+            _data[c * Hw + i * Width + j + b * Chw] = value;
         }
         
         
