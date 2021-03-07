@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Text;
 using ManagedCuda;
 using ManagedCuda.BasicTypes;
-using ManagedCuda.VectorTypes;
 
 namespace Network.NeuralMath.Gpu
 {
@@ -28,46 +25,46 @@ namespace Network.NeuralMath.Gpu
 
         private void LoadAllKernels()
         {
-            LoadAllKernelsFromPtx("activation.ptx");
-            LoadAllKernelsFromPtx("conv.ptx");
-            LoadAllKernelsFromPtx("loss.ptx");
-            LoadAllKernelsFromPtx("basic.ptx");
-            LoadAllKernelsFromPtx("padding.ptx");
-            LoadAllKernelsFromPtx("pooling.ptx");
-            LoadAllKernelsFromPtx("optimizers.ptx");
-            LoadAllKernelsFromPtx("softmax.ptx");
+            LoadAllKernelsFromModule("activation.ptx");
+            LoadAllKernelsFromModule("conv.ptx");
+            LoadAllKernelsFromModule("loss.ptx");
+            LoadAllKernelsFromModule("basic.ptx");
+            LoadAllKernelsFromModule("padding.ptx");
+            LoadAllKernelsFromModule("pooling.ptx");
+            LoadAllKernelsFromModule("optimizers.ptx");
+            LoadAllKernelsFromModule("softmax.ptx");
         }
 
-        public void LoadAllKernelsFromPtx(string modulePath)    
+        public void LoadAllKernelsFromModule(string modulePath) 
         {    
             if(modulePath == null || !File.Exists(modulePath))
                 throw new ArgumentException(nameof(modulePath));
             
             List<string> lines = new List<string>();
             string pattern = "entry ";
+            
             using var stream = new FileStream(modulePath, FileMode.Open);
-            using (var reader = new StreamReader(stream))
+            using var reader = new StreamReader(stream);
+            while (!reader.EndOfStream)
             {
-                while (!reader.EndOfStream)
-                {
-                    string line = reader.ReadLine();
-                    if(line.Contains(pattern))
-                        lines.Add(line);
-                }
+                string line = reader.ReadLine();
+                if(line.Contains(pattern))
+                    lines.Add(line);
             }
-            List<string> names = lines.Select(l =>
+
+            List<string> moduleNames = lines.Select(l =>
             {
                 int i = l.IndexOf(pattern);
                 return l.Substring(i + pattern.Length, l.Length - pattern.Length - i - 1);
             }).ToList();
             
-            foreach (var name in names)
+            foreach (var name in moduleNames)
             {
                 LoadKernel(modulePath, name);
             }
         }
 
-        public void LoadKernel(string modulePath, string kernelName)
+        private void LoadKernel(string modulePath, string kernelName)
         {
             var kernel = _context.CudaContext.LoadKernel(modulePath, kernelName);
             _kernels.Add(kernelName, kernel);
@@ -83,10 +80,23 @@ namespace Network.NeuralMath.Gpu
         {
             _kernels.Add(kernel.KernelName, kernel);
         }
+        
+        private void CalcDimensions(int size, out int gridX, out int blockX)    
+        {
+            if (size <= _maxThreads)
+            {
+                gridX = 1;
+                blockX = size;
+                return;
+            }
+            
+            blockX = _maxThreads;
+            gridX = (int)Math.Ceiling((double)size / _maxThreads);
+        }
 
         public void LaunchKernel(string kernelName, int size, int sharedMemory, params object[] parameters)
         {
-            CalcDim(size, out var gridx, out var blockX);
+            CalcDimensions(size, out var gridx, out var blockX);
             LaunchKernel(kernelName, gridx, blockX, sharedMemory, parameters);
         }
     
@@ -100,20 +110,7 @@ namespace Network.NeuralMath.Gpu
             kernel.BlockDimensions = blockSize;    
             kernel.DynamicSharedMemory = (uint)sharedMemory;
             kernel.RunAsync(_context.Stream.Stream, parameters);
-        }    
-    
-        public void CalcDim(int size, out int gridX, out int blockX)    
-        {
-            if (size <= _maxThreads)
-            {
-                gridX = 1;
-                blockX = size;
-                return;
-            }
-            
-            blockX = _maxThreads;
-            gridX = (int)Math.Ceiling((double)size / _maxThreads);
         }
-        
+
     }
 }

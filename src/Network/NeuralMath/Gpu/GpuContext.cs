@@ -6,6 +6,7 @@ namespace Network.NeuralMath.Gpu
     public class GpuContext
     {
         private static GpuContext _context;
+        
         public KernelManager KernelManager { get; }
         public static GpuContext Instance
         {

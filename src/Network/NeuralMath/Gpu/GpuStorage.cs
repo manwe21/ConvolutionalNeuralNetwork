@@ -22,18 +22,20 @@ namespace Network.NeuralMath.Gpu
             get => DeviceStorage;
             set
             {
-                if(!IsMemoryAllocated)
-                    AllocateMemory(value.Length);
+                if (value is null)
+                    throw new ArgumentNullException(nameof(value));
+                
+                AllocateMemory(value.Length);
             
                 //allocate memory for host data
                 IntPtr host = Marshal.AllocHGlobal(value.Length * sizeof(float));
                 Marshal.Copy(value, 0, host, value.Length);
             
                 //copy host data to device 
-                var res = DriverAPINativeMethods.AsynchronousMemcpy_v2.cuMemcpyHtoDAsync_v2(DeviceStorage.DevicePointer, host,
+                var result = DriverAPINativeMethods.AsynchronousMemcpy_v2.cuMemcpyHtoDAsync_v2(DeviceStorage.DevicePointer, host,
                     DeviceStorage.SizeInBytes, Context.Stream.Stream);
-                if(res != CUResult.Success)
-                    throw new CudaException(res);
+                if(result != CUResult.Success)
+                    throw new CudaException(result);
             
                 //free host buffer
                 Marshal.FreeHGlobal(host);
@@ -46,6 +48,7 @@ namespace Network.NeuralMath.Gpu
             {
                 if(DeviceStorage.Size != data.Size)
                     throw new ArgumentException(nameof(data));
+                
                 DeviceStorage = data;
             }
             else
@@ -61,7 +64,7 @@ namespace Network.NeuralMath.Gpu
             if(size <= 0)
                 throw new ArgumentException(nameof(size));
             
-            AllocateMemory(new Shape(1, 1, 1, size));
+            AllocateMemory(Shape.ForVector(size));
         }
 
         public override void AllocateMemory(Shape shape)
