@@ -28,12 +28,10 @@ namespace Network.NeuralMath.Gpu
         
         public static TensorBuilder Build => new GpuBuilder();
 
-        public override void Dot2D(Tensor b, Tensor c)
+        protected override void DoDot2D(Tensor b, Tensor c)
         {
             var bStorage = b.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(b));
             var cStorage = c.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(c));
-            
-            c.Storage.AllocateMemory(GetDot2DShape(Storage.Shape, b.Storage.Shape));
             
             int rowA = Height;
             int colA = Width;
@@ -62,16 +60,14 @@ namespace Network.NeuralMath.Gpu
                 colB);
         }
 
-        public override void Dot2D(Tensor b, int ha, int wa, int hb, int wb, Shape resultShape, Tensor c)
+        protected override void DoDot2D(Tensor b, int hA, int wA, int hB, int wB, Shape resultShape, Tensor c)
         {
             var bStorage = b.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(b));
             var cStorage = c.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(c));
-
-            c.Storage.AllocateMemory(resultShape ?? new Shape(1, 1,ha, wb ));
             
-            int rowA = ha;
-            int colA = wa;
-            int colB = wb;
+            int rowA = hA;
+            int colA = wA;
+            int colB = wB;
             int colC = c.Width;
 
             const float alpha = 1.0f;
@@ -96,42 +92,41 @@ namespace Network.NeuralMath.Gpu
                 colB);
         }
 
-        public override void Transpose2D(Tensor result)
+        protected override void DoTranspose2D(Tensor result)
         {
-            var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
+            var resultStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
 
-            result.Storage.AllocateMemory(new Shape(1, 1, Width, Height));
             var dX = _storage.DeviceStorage;
-            var dRes = resStorage.DeviceStorage;
+            var dRes = resultStorage.DeviceStorage;
             _context.Methods.Transpose2D(dX, dRes, _storage.Descriptor);
         }
 
-        public override void Max(Tensor result)
+        protected override void FindMax(Tensor result)
         {
-            if (result == null) throw new ArgumentNullException(nameof(result));
             var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
 
-            result.Storage.AllocateMemory(new Shape(Batch, 1, 1, 2));
             var dA = _storage.DeviceStorage;
             var dMax = resStorage.DeviceStorage;
+            
             _context.Methods.Max(dA, dMax, _storage.Descriptor);
         }
 
-        public override void Average(Tensor result)
+        protected override void FindAverage(Tensor result)
         {
             throw new NotImplementedException();
         }
 
-        public override void Sum(Tensor tensor)
+        protected override void DoSum(Tensor tensor)
         {
             var bStorage = tensor.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(tensor));
     
             var dA = _storage.DeviceStorage;
             var dB = bStorage.DeviceStorage;
+            
             _context.Methods.Sum(dA, dB, _storage.Descriptor);
         }
 
-        public override void Sum(Tensor tensor, Tensor result)
+        protected override void DoSum(Tensor tensor, Tensor result)
         {
             throw new System.NotImplementedException();
         }
@@ -142,117 +137,106 @@ namespace Network.NeuralMath.Gpu
             _context.Methods.Fill(dX, value, _storage.Descriptor);
         }
 
-        public override void Fill(float value, Tensor result)
+        protected override void DoFilling(float value, Tensor result)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void Rotate180(Tensor result)
+        protected override void DoRotate180(Tensor result)
         {
-            var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
+            var resultStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
 
-            result.Storage.AllocateMemory(this.Storage.Shape);
             var dX = _storage.DeviceStorage;
-            var dRes = resStorage.DeviceStorage;
+            var dRes = resultStorage.DeviceStorage;
+            
             _context.Methods.Rotate180(dX, dRes, this.Storage.Descriptor);
         }
 
-        public override void Im2Col(int kernelH, int kernelW, int stride, Tensor result)
+        protected override void DoIm2Col(int kernelH, int kernelW, int stride, Tensor result)
         {
-            var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
+            var resultStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
 
-            result.Storage.AllocateMemory(GetImg2ColShape(Storage.Shape, kernelW, kernelH, stride));
             var dA = _storage.DeviceStorage;
-            var dRes = resStorage.DeviceStorage;
-            int convByRow = (Width - kernelW) / stride + 1;
-            _context.Methods.Im2Col(dA, dRes, Storage.Descriptor, kernelH, stride, result.Storage.Descriptor, convByRow);
+            var dRes = resultStorage.DeviceStorage;
+            
+            var convolutionsByRow = (Width - kernelW) / stride + 1;
+            _context.Methods.Im2Col(dA, dRes, Storage.Descriptor, kernelH, stride, result.Storage.Descriptor, convolutionsByRow);
         }
 
-        public override void Col2Im(Shape outShape, Tensor result)
+        protected override void DoCol2Im(Shape outShape, Tensor result)
         {
-            result.Storage.AllocateMemory(outShape);
-            
             var dA = _storage.DeviceStorage;
             var dRes = (result.Storage as GpuStorage)?.DeviceStorage;
             _context.Methods.Col2Im(dA, dRes, Storage.Descriptor, result.Storage.Descriptor);
         }
 
-        public override void Pad(int value, Tensor result)
+        protected override void DoPad(int value, Tensor result)
         {
-            var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
+            var resultStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
 
-            result.Storage.AllocateMemory(GetPaddingShape(Storage.Shape, value));
             var dX = _storage.DeviceStorage;
-            var dRes = resStorage.DeviceStorage;
+            var dRes = resultStorage.DeviceStorage;
+            
             _context.Methods.Pad(dX, dRes, value, Storage.Descriptor, result.Storage.Descriptor);
         }
 
-        public override void PadDx(int value, Tensor dy, Tensor dx)
+        protected override void DoPadDx(int value, Tensor dy, Tensor dx)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void MaxPool(int poolSize, int stride, Tensor result, Tensor indexes)
+        protected override void DoMaxPool(int poolSize, int stride, Tensor result, Tensor indexes)
         {
-            var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
+            var resultStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
             var indexesStorage = indexes.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(indexes));
 
-            result.Storage.AllocateMemory(GetPoolingShape(Storage.Shape, poolSize, stride));
-            indexes.Storage.AllocateMemory(Shape.ForVector(result.Size));
-            
             var dX = _storage.DeviceStorage;
             var dMax = indexesStorage.DeviceStorage;
-            var dRes = resStorage.DeviceStorage;
+            var dRes = resultStorage.DeviceStorage;
+            
             _context.Methods.MaxPool(dX, dRes, dMax, poolSize, stride, Storage.Descriptor, result.Storage.Descriptor);
         }
 
-        public override void MaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor dx)
+        protected override void DoMaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor dx)
         {
             var dyStorage = dy.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dy));
             var indexesStorage = maxIndexes.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(maxIndexes));
             var dxStorage = dx.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dx));
             
-            dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
-            
             var dDy = dyStorage.DeviceStorage;
             var dMax = indexesStorage.DeviceStorage;
             var dDx = dxStorage.DeviceStorage;
+            
             _context.Methods.MaxPoolDx(dDy, dMax, dDx, dy.Storage.Descriptor);
         }
 
-        public override void Activation(IFunction function, Tensor result)
+        protected override void DoActivation(IFunction function, Tensor result)
         {
-            var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
+            var resultStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
 
-            result.Storage.AllocateMemory(Storage.Shape.GetCopy());
             var dX = _storage.DeviceStorage;
-            var dRes = resStorage.DeviceStorage;
+            var dRes = resultStorage.DeviceStorage;
+            
             _context.Methods.Activation(dX, function, dRes, _storage.Descriptor);
         }
 
-        public override void ActivationDx(IFunction function, Tensor dy, Tensor dx)
+        protected override void DoActivationDx(IFunction function, Tensor dy, Tensor dx)
         {
-            if (function == null) throw new ArgumentNullException(nameof(function));
-            if (dy == null) throw new ArgumentNullException(nameof(dy));
-            if (dx == null) throw new ArgumentNullException(nameof(dx));
-            if(function is null) throw new ArgumentNullException(nameof(function));
             var dyStorage = dy.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dy));
             var dxStorage = dx.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dx));
             
-            dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
             var dX = _storage.DeviceStorage;
             var dDy = dyStorage.DeviceStorage;
             var dDx = dxStorage.DeviceStorage;
+            
             _context.Methods.ActivationDx(dX, function, dDy, dDx, _storage.Descriptor);
         }
         
-        public override void Softmax(Tensor result, Tensor maxBuffer)
+        protected override void DoSoftmax(Tensor result, Tensor maxBuffer)
         {
             var maxStorage = maxBuffer.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(maxBuffer));
             var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
-            
-            result.Storage.AllocateMemory(Storage.Shape.GetCopy());
-            
+
             this.Max(maxBuffer);
 
             //BUG When GPU-Softmax works together with convolution, result is wrong
@@ -285,81 +269,75 @@ namespace Network.NeuralMath.Gpu
             _context.Methods.Softmax(dX, dMax, dY, _storage.Descriptor);*/
         }
 
-        public override void SoftmaxDx(Tensor dy, Tensor dx)
+        protected override void DoSoftmaxDx(Tensor dy, Tensor dx)
         {
             var dyStorage = dy.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dy));
-            var resStorage = dx.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dx));
+            var dxStorage = dx.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dx));
 
-            dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
             var dY = _storage.DeviceStorage;
             var dDy = dyStorage.DeviceStorage;
-            var dRes = resStorage.DeviceStorage;
+            var dRes = dxStorage.DeviceStorage;
+            
             _context.Methods.SoftmaxDx(dY, dDy, dRes, _storage.Descriptor);
         }
 
-        public override void Loss(Tensor correct, ILossFunction lossFunction, Tensor loss)
+        protected override void DoLoss(Tensor correct, ILossFunction lossFunction, Tensor loss)
         {
             var tStorage = correct.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(correct));
             var lossStorage = loss.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(loss));
 
-            loss.Storage.AllocateMemory(new Shape(Batch, 1, 1, 1));
             var dO = _storage.DeviceStorage;
             var dT = tStorage.DeviceStorage;
             var dLoss = lossStorage.DeviceStorage;
+            
             _context.Methods.Loss(dO, dT, dLoss, lossFunction, _storage.Descriptor);
         }
 
-        public override void LossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy)
+        protected override void DoLossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy)
         {
             var tStorage = correct.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(correct));
-            var resStorage = dy.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dy));
+            var dyStorage = dy.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dy));
 
-            dy.Storage.AllocateMemory(Storage.Shape.GetCopy());
             var dO = _storage.DeviceStorage;
             var dT = tStorage.DeviceStorage;
-            var dDy = resStorage.DeviceStorage;
+            var dDy = dyStorage.DeviceStorage;
+            
             _context.Methods.LossDerivative(dO, dT, dDy, lossFunction, dy.Storage.Descriptor);
         }
 
-        public override void ToFlatten(Tensor result)
+        protected override void DoFlattening(Tensor result)
         {
-            _ = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
+            var resultStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
 
-            result.Storage.AllocateMemory(GetFlattenShape(Storage.Shape));
-            (result.Storage as GpuStorage)?.SetDeviceData(_storage.DeviceStorage);
+            resultStorage.SetDeviceData(_storage.DeviceStorage);
         }
 
-        public override void FlattenDx(Tensor dy, Tensor dx)
+        protected override void DoFlatteningDx(Tensor dy, Tensor dx)
         {
             var dyStorage = dy.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dy));
-            _ = dx.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dx));
+            var dxStorage = dx.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(dx));
 
-            dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
-            (dx.Storage as GpuStorage)?.SetDeviceData(dyStorage.DeviceStorage);
+            dxStorage.SetDeviceData(dyStorage.DeviceStorage);
         }
 
-        public override void To2DByRows(Tensor result)
+        protected override void Do2DReshapingByRows(Tensor result)
         {
-            if (result == null) throw new ArgumentNullException(nameof(result));
             var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
             
-            result.Storage.AllocateMemory(Get2DByRowsShape(Storage.Shape));
             _context.Methods.To2DByRows(_storage.DeviceStorage, resStorage.DeviceStorage, Storage.Descriptor, resStorage.Descriptor);
         }
 
-        public override void To2DByColumns(Tensor result)
+        protected override void Do2DReshapingByColumns(Tensor result)
         {
             var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
             
-            result.Storage.AllocateMemory(Get2DByColumnsShape(Storage.Shape));
             _context.Methods.To2DByColumns(_storage.DeviceStorage, resStorage.DeviceStorage, Storage.Descriptor, resStorage.Descriptor);
         }
 
-        public override void ReshapeForBatches(Shape resultShape, Tensor result)
+        protected override void DoReshapingForBatches(Shape resultShape, Tensor result)
         {
             var resStorage = result.Storage as GpuStorage ?? throw new UnsupportedStorageException(nameof(result));
             
-            result.Storage.AllocateMemory(resultShape);
             _context.Methods.ReshapeForBatches(_storage.DeviceStorage, resStorage.DeviceStorage, _storage.Descriptor, result.Storage.Descriptor);
         }
 

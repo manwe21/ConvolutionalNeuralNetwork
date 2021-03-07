@@ -18,10 +18,8 @@ namespace Network.NeuralMath.Cpu
         
         public static CpuBuilder Build => new CpuBuilder();
 
-        public override void Dot2D(Tensor b, Tensor c)
+        protected override void DoDot2D(Tensor b, Tensor c)
         {
-            c.Storage.AllocateMemory(GetDot2DShape(Storage.Shape, b.Storage.Shape));
-            
             int m = Height;
             int n = b.Width;
             int k = Width;
@@ -33,17 +31,15 @@ namespace Network.NeuralMath.Cpu
             int ldb = n;
             int ldc = n;
 
-            //MKL row major dgemm
+            //MKL row major DGEMM
             Blas.gemm(Layout.RowMajor, Trans.No, Trans.No, m, n, k, alpha, Storage.Data, lda, b.Storage.Data, ldb, beta, c.Storage.Data, ldc);
         }
 
-        public override void Dot2D(Tensor b, int ha, int wa, int hb, int wb, Shape resultShape, Tensor c)
+        protected override void DoDot2D(Tensor b, int hA, int wA, int hB, int wB, Shape resultShape, Tensor c)
         {
-            c.Storage.AllocateMemory(resultShape ?? new Shape(1, 1, ha, wb));
-            
-            int m = ha;
-            int n = wb;
-            int k = wa;
+            int m = hA;
+            int n = wB;
+            int k = wA;
 
             int alpha = 1;
             int beta = 0;    
@@ -55,10 +51,8 @@ namespace Network.NeuralMath.Cpu
             Blas.gemm(Layout.RowMajor, Trans.No, Trans.No, m, n, k, alpha, Storage.Data, lda, b.Storage.Data, ldb, beta, c.Storage.Data, ldc);
         }
 
-        public override void Transpose2D(Tensor result)
+        protected override void DoTranspose2D(Tensor result)
         {
-            result.Storage.AllocateMemory(new Shape(1, 1, Width, Height));
-
             for (int j = 0; j < Width; j++)
             {
                 for (int i = 0; i < Height; i++)
@@ -68,10 +62,8 @@ namespace Network.NeuralMath.Cpu
             }
         }
 
-        public override void Max(Tensor result)
+        protected override void FindMax(Tensor result)
         {
-            result.Storage.AllocateMemory(new Shape(Batch, 1, 1, 2));
-
             for (int b = 0; b < Batch; b++)
             {
                 var max = this[b, 0, 0, 0];
@@ -98,15 +90,16 @@ namespace Network.NeuralMath.Cpu
             
         }
 
-        public override void Average(Tensor result)
+        protected override void FindAverage(Tensor result)
         {
-            result.Storage.AllocateMemory(new Shape(Batch, 1, 1, 1));
-
             var sizePerBatch = Size / Batch;
             Parallel.For(0, Batch, b =>
             {
                 float sum = 0;
-                for (int i = b * sizePerBatch; i < b * sizePerBatch + sizePerBatch; i++)
+
+                var start = b * sizePerBatch;
+                var end = b * sizePerBatch + sizePerBatch;
+                for (int i = start; i < end; i++)
                 {
                     sum += this[i];
                 }
@@ -114,10 +107,8 @@ namespace Network.NeuralMath.Cpu
             });
         }
 
-        public override void Pad(int value, Tensor result)
+        protected override void DoPad(int value, Tensor result)
         {
-            result.Storage.AllocateMemory(GetPaddingShape(Storage.Shape, value));
-
             var endI = result.Height - value;
             var endJ = result.Width - value;
             
@@ -136,10 +127,8 @@ namespace Network.NeuralMath.Cpu
             });
         }
 
-        public override void PadDx(int value, Tensor dy, Tensor dx)
+        protected override void DoPadDx(int value, Tensor dy, Tensor dx)
         {
-            dx.Storage.AllocateMemory(new Shape(dy.Batch, dy.Channels, dy.Height - 2 * value, dy.Width - 2 * value));
-
             var endI = dy.Width - value;
             var endJ = dy.Height - value;
             
@@ -159,22 +148,22 @@ namespace Network.NeuralMath.Cpu
 
         }
 
-        public override void Sum(Tensor tensor)
+        protected override void DoSum(Tensor tensor)
         {
             var sizePerBatch = Size / Batch;
             Parallel.For(0, Batch, b =>
             {
-                for (int i = b * sizePerBatch; i < sizePerBatch + b * sizePerBatch; i++)
+                var start = b * sizePerBatch;
+                var end = sizePerBatch + b * sizePerBatch;
+                for (int i = start; i < end; i++)
                 {
                     this[i] += tensor[i];
                 }
             });
         }
 
-        public override void Sum(Tensor tensor, Tensor result)
+        protected override void DoSum(Tensor tensor, Tensor result)
         {
-            result.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             for (int i = 0; i < Size; i++)
             {
                 result[i] = this[i] + tensor[i];
@@ -189,15 +178,13 @@ namespace Network.NeuralMath.Cpu
             }
         }
 
-        public override void Fill(float value, Tensor result)
+        protected override void DoFilling(float value, Tensor result)
         {
             Map(e => value, result);
         }
 
-        public override void Rotate180(Tensor result)
+        protected override void DoRotate180(Tensor result)
         {
-            result.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             int sectorSize = Height * Width;
             int sectorsCount = Batch * Channels;
             for (int i = 0; i < Size; i++)
@@ -209,10 +196,8 @@ namespace Network.NeuralMath.Cpu
             }
         }
 
-        public override void Im2Col(int kernelH, int kernelW, int stride, Tensor result)
+        protected override void DoIm2Col(int kernelH, int kernelW, int stride, Tensor result)
         {
-            result.Storage.AllocateMemory(GetImg2ColShape(Storage.Shape, kernelH, kernelW, stride));
-
             var convByRow = (Width - kernelW) / stride + 1;
             var convByCol = (Height - kernelH) / stride + 1;
             var khw = kernelH * kernelW;
@@ -241,19 +226,16 @@ namespace Network.NeuralMath.Cpu
             });
         }
 
-        public override void Col2Im(Shape outShape, Tensor result) 
+        protected override void DoCol2Im(Shape outShape, Tensor result) 
         {
-            result.Storage.AllocateMemory(outShape);
-
             int wh = outShape[2] * outShape[3];
-    
             Parallel.For(0, outShape[0], b =>
             {
-                var st = b * wh;
-                var lim = b * wh + wh;
+                var start = b * wh;
+                var end = b * wh + wh;
                 for (int i = 0; i < Height; i++)
                 {
-                    for (int j = st; j < lim; j++)
+                    for (int j = start; j < end; j++)
                     {
                         int h = j % wh / wh;
                         int w = j % wh % wh; 
@@ -265,8 +247,6 @@ namespace Network.NeuralMath.Cpu
 
         private void Map(Func<float, float> func, Tensor result)
         {
-            result.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             var sizePerBatch = Size / Batch;
             Parallel.For(0, Batch, b =>
             {
@@ -282,23 +262,14 @@ namespace Network.NeuralMath.Cpu
 
         private void Map2(Func<float, int, float> func, Tensor result)
         {
-            result.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             for (int i = 0; i < Size; i++)
             {
                 result[i] = func(this[i], i);
             }
         }
 
-        public override void MaxPool(int poolSize, int stride, Tensor result, Tensor indexes)    
+        protected override void DoMaxPool(int poolSize, int stride, Tensor result, Tensor indexes)    
         {
-            result.Storage.AllocateMemory(GetPoolingShape(Storage.Shape, poolSize, stride));
-
-            if (!indexes.Storage.IsMemoryAllocated)
-            {
-                indexes.Storage.AllocateMemory(new Shape(1, 1, 1, result.Size));
-            }
-
             var countH = result.Height;
             var countW = result.Width;
             var countC = countH * countW;
@@ -339,26 +310,22 @@ namespace Network.NeuralMath.Cpu
 
         }
 
-        public override void MaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor dx)
+        protected override void DoMaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor dx)
         {
-            dx.Storage.AllocateMemory(this.Storage.Shape.GetCopy());
-
             for (int i = 0; i < maxIndexes.Size; i++)
             {
-                dx[(int)maxIndexes[i]] = dy[i];
+                var index = (int) maxIndexes[i];
+                dx[index] = dy[i];
             }
-            
         }
 
-        public override void Activation(IFunction function, Tensor result)
+        protected override void DoActivation(IFunction function, Tensor result)
         {
             this.Map(function.Process, result);
         }
 
-        public override void ActivationDx(IFunction function, Tensor dy, Tensor dx)
+        protected override void DoActivationDx(IFunction function, Tensor dy, Tensor dx)
         {
-            dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             var sizePerBatch = Size / Batch;
             Parallel.For(0, Batch, b =>
             {
@@ -372,10 +339,8 @@ namespace Network.NeuralMath.Cpu
 
         }
 
-        public override void Softmax(Tensor result, Tensor maxBuffer)
+        protected override void DoSoftmax(Tensor result, Tensor maxBuffer)
         {
-            result.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             this.Max(maxBuffer);
             var sizePerBatch = Size / Batch;
             for (int b = 0; b < Batch; b++)
@@ -393,19 +358,19 @@ namespace Network.NeuralMath.Cpu
             
         }
 
-        public override void SoftmaxDx(Tensor dy, Tensor dx)
+        protected override void DoSoftmaxDx(Tensor dy, Tensor dx)
         {
-            dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             var sizePerBatch = Size / Batch;
             
             //Last layer is usually quite small, so Parallel.For will affect performance
             for (int b = 0; b < Batch; b++)
             {
-                for (int i = b * sizePerBatch; i < b * sizePerBatch + sizePerBatch; i++)
+                var start = b * sizePerBatch;
+                var end = b * sizePerBatch + sizePerBatch;
+                for (int i = start; i < end; i++)
                 {
                     float sum = 0.0f;
-                    for (int j = b * sizePerBatch; j < b * sizePerBatch + sizePerBatch; j++)
+                    for (int j = start; j < end; j++)
                     {
                         float d;
                         if (i == j)
@@ -420,38 +385,28 @@ namespace Network.NeuralMath.Cpu
             }
         }    
 
-        public override void Loss(Tensor correct, ILossFunction lossFunction, Tensor loss)
+        protected override void DoLoss(Tensor correct, ILossFunction lossFunction, Tensor loss)
         {
-            loss.Storage.AllocateMemory(new Shape(Batch, 1, 1, 1));
-
             lossFunction.Process(this, correct, loss);
         }
 
-        public override void LossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy)
+        protected override void DoLossDerivative(Tensor correct, ILossFunction lossFunction, Tensor dy)
         {
-            dy.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             lossFunction.Derivative(this, correct, dy);
         }
 
-        public override void ToFlatten(Tensor result)
+        protected override void DoFlattening(Tensor result)
         {
-            result.Storage.AllocateMemory(GetFlattenShape(Storage.Shape));
-
             result.Storage.Data = Storage.Data;
         }
 
-        public override void FlattenDx(Tensor dy, Tensor dx)
+        protected override void DoFlatteningDx(Tensor dy, Tensor dx)
         {
-            dx.Storage.AllocateMemory(Storage.Shape.GetCopy());
-
             dx.Storage.Data = dy.Storage.Data;
         }
 
-        public override void To2DByRows(Tensor result)
+        protected override void Do2DReshapingByRows(Tensor result)
         {
-            result.Storage.AllocateMemory(Get2DByRowsShape(Storage.Shape));
-
             Parallel.For(0, Channels, c =>
             {
                 var wI = 0;
@@ -469,31 +424,27 @@ namespace Network.NeuralMath.Cpu
             });
         }
 
-        public override void To2DByColumns(Tensor result)
+        protected override void Do2DReshapingByColumns(Tensor result)
         {
-            result.Storage.AllocateMemory(Get2DByColumnsShape(Storage.Shape));
-                
             Parallel.For(0, Channels, c =>
             {
-                var count = 0;
+                var hI = 0;
                 for (int b = 0; b < Batch; b++)
                 {
                     for (int i = 0; i < Height; i++)
                     {
                         for (int j = 0; j < Width; j++)
                         {
-                            result[count, c] = this[b, c, i, j];
-                            count++;
+                            result[hI, c] = this[b, c, i, j];
+                            hI++;
                         }
                     }
                 }
             });
         }
 
-        public override void ReshapeForBatches(Shape resultShape, Tensor result)
+        protected override void DoReshapingForBatches(Shape resultShape, Tensor result)
         {
-            result.Storage.AllocateMemory(resultShape);
-            
             Parallel.For(0, result.Channels, c =>
             {
                 for (var b = 0; b < result.Batch; b++)
@@ -511,5 +462,6 @@ namespace Network.NeuralMath.Cpu
                 }
             });
         }
+        
     }
 }

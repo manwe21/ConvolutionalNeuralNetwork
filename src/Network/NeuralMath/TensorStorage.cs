@@ -15,12 +15,13 @@ namespace Network.NeuralMath
             get => _shape;
             set
             {
-                if(!(_shape is null))
-                {
-                    //can`t reshape tensor by shape with different size
-                    if(Shape.Size != value.Size)
-                        throw new ArgumentException(nameof(value));
-                }
+                if (_shape is null)
+                    throw new ArgumentNullException(nameof(value));
+                
+                //can`t reshape tensor by shape with different size
+                if(Shape.Size != value.Size)
+                    throw new ArgumentException(nameof(value));
+                
 
                 _shape = value;
                 Batch = _shape[0];
