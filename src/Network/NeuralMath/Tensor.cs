@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using Network.NeuralMath.Functions.ActivationFunctions;
 using Network.NeuralMath.Functions.LossFunctions;
 
@@ -71,48 +72,66 @@ namespace Network.NeuralMath
         public abstract void Col2Im(Shape outShape, Tensor result);
 
         public abstract void Pad(int value, Tensor result);
-        public abstract void PadDx(int value, Tensor dy, Tensor result);    
-                            
-        public abstract void FullyConnectedDx(Tensor weights, Tensor dy, Tensor transBuffer, Tensor dx);
-        public abstract void FullyConnectedDw(Tensor dy, Tensor transBuffer, Tensor dw);
-    
-        public void Convolution(Tensor filters, int stride, Tensor result)
-        {
-            var builder = TensorBuilder.OfType(filters.GetType());
-            Convolution(filters, stride, builder.Empty(), builder.Empty(), result);
-        }
-        
-        public abstract void Convolution(Tensor filters, int stride, Tensor img2ColBuffer, Tensor dotBuffer, Tensor result);
+        public abstract void PadDx(int value, Tensor dy, Tensor dx);
 
-        public void ConvolutionDx(Tensor filters, Tensor dy, Tensor dx)
+        public void FullyConnectedDx(Tensor weights, Tensor dy, Tensor transBuffer, Tensor dx)
         {
-            var builder = TensorBuilder.OfType(filters.GetType());
-            ConvolutionDx(filters, dy, builder.Empty(), builder.Empty(), builder.Empty(), builder.Empty(), builder.Empty(), dx);
+            weights.Transpose2D(transBuffer);
+            dy.Dot2D(transBuffer, dy.Batch, dy.Width, transBuffer.Height, transBuffer.Width, Storage.Shape, dx);
         }
+
+        public void FullyConnectedDw(Tensor dy, Tensor transBuffer, Tensor dw)
+        {
+            var initialShape = Storage.Shape;
+            Storage.Shape = new Shape(1, 1, Batch, Width);
+            this.Transpose2D(transBuffer);
+            transBuffer.Dot2D(dy, transBuffer.Height, transBuffer.Width, dy.Batch, dy.Width, dw.Storage.Shape, dw);
+            Storage.Shape = initialShape;
+        }
+
+        public void Convolution(Tensor filters, int stride, Tensor img2ColBuffer, Tensor dotBuffer, Tensor result)
+        {
+            result.Storage.AllocateMemory(GetConvolutionalShape(Storage.Shape, filters.Storage.Shape, stride, 0));
             
-        public abstract void ConvolutionDx(Tensor filters, Tensor dy, Tensor paddingBuffer, Tensor img2ColBuffer, Tensor filters2DBuffer, Tensor rotBuffer, Tensor dot2DBuffer, Tensor dx);
+            this.Im2Col(filters.Height, filters.Width, stride, img2ColBuffer);
+            filters.Dot2D(img2ColBuffer,
+                filters.Batch,
+                filters.Channels * filters.Height * filters.Width,
+                img2ColBuffer.Height,
+                img2ColBuffer.Width,
+                null,
+                dotBuffer);
+            dotBuffer.Col2Im(result.Storage.Shape, result);
+        }
 
-        public void ConvolutionDw(Tensor filters, Tensor dy, int stride, Tensor dw)
+        public void ConvolutionDx(Tensor filters, Tensor dy, Tensor paddingBuffer, Tensor img2ColBuffer, Tensor filters2DBuffer, Tensor rotBuffer, Tensor dot2DBuffer, Tensor dx)
         {
-            var builder = TensorBuilder.OfType(filters.GetType());
-            var im2ColTensor = builder.Empty();
-            Im2Col(filters.Height, filters.Width, stride, im2ColTensor);
-            ConvolutionDw(filters, dy, builder.Empty(), builder.Empty(), im2ColTensor, dw);
+            dy.Storage.AllocateMemory(Storage.Shape.GetCopy());
+            
+            dy.Pad(Width - dy.Width, paddingBuffer);
+            paddingBuffer.Im2Col(filters.Height, filters.Width, 1, img2ColBuffer);
+            filters.Rotate180(rotBuffer);
+            rotBuffer.To2DByRows(filters2DBuffer);
+            filters2DBuffer.Dot2D(img2ColBuffer, dot2DBuffer);
+            dot2DBuffer.ReshapeForBatches(Storage.Shape, dx);
         }
         
-        public abstract void ConvolutionDw(Tensor filters, Tensor dy, Tensor dy2DBuffer, Tensor dotBuffer, Tensor img2ColX, Tensor dw);    
-        
+        public void ConvolutionDw(Tensor filters, Tensor dy, Tensor dy2DBuffer, Tensor dotBuffer, Tensor img2ColX, Tensor dw)
+        {
+            dw.Storage.AllocateMemory(Get2DByRowsShape(filters.Storage.Shape));
+            
+            dy.To2DByColumns(dy2DBuffer);
+            img2ColX.Dot2D(dy2DBuffer, dotBuffer);
+            dotBuffer.Transpose2D(dw);
+            dw.Storage.Shape = filters.Storage.Shape;
+        }
+
         public abstract void MaxPool(int poolSize, int stride, Tensor result, Tensor indexes);
         public abstract void MaxPoolDx(Tensor dy, Tensor maxIndexes, Tensor dx);            
     
         public abstract void Activation(IFunction function, Tensor result);
         public abstract void ActivationDx(IFunction function, Tensor dy, Tensor dx);
 
-        public void Softmax(Tensor result)
-        {
-            Softmax(result, TensorBuilder.OfType(result.GetType()).Empty());    
-        }
-        
         public abstract void Softmax(Tensor result, Tensor maxBuffer);
         public abstract void SoftmaxDx(Tensor dy, Tensor dx);
 

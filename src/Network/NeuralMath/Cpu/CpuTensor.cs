@@ -136,9 +136,9 @@ namespace Network.NeuralMath.Cpu
             });
         }
 
-        public override void PadDx(int value, Tensor dy, Tensor result)
+        public override void PadDx(int value, Tensor dy, Tensor dx)
         {
-            result.Storage.AllocateMemory(new Shape(dy.Batch, dy.Channels, dy.Height - 2 * value, dy.Width - 2 * value));
+            dx.Storage.AllocateMemory(new Shape(dy.Batch, dy.Channels, dy.Height - 2 * value, dy.Width - 2 * value));
 
             var endI = dy.Width - value;
             var endJ = dy.Height - value;
@@ -151,7 +151,7 @@ namespace Network.NeuralMath.Cpu
                     {
                         for (int j = value; j < endJ; j++)
                         {
-                            result[b, c, i - value, j - value] = dy[b, c, i, j];
+                            dx[b, c, i - value, j - value] = dy[b, c, i, j];
                         }
                     }
                 }
@@ -290,88 +290,6 @@ namespace Network.NeuralMath.Cpu
             }
         }
 
-        public override void FullyConnectedDx(Tensor weights, Tensor dy, Tensor transBuffer, Tensor dx)
-        {
-            if (!dx.Storage.IsMemoryAllocated)
-            {
-                dx.Storage.AllocateMemory(new Shape(Batch, Channels, Height, Width));
-            }
-            weights.Transpose2D(transBuffer);
-            dy.Dot2D(transBuffer, dy.Batch, dy.Width, transBuffer.Height, transBuffer.Width, Storage.Shape, dx);
-        }   
-
-        public override void FullyConnectedDw(Tensor dy, Tensor transBuffer, Tensor dw)
-        {
-            var shape = Storage.Shape;
-            Storage.Shape = new Shape(1, 1, Batch, Width);
-            this.Transpose2D(transBuffer);
-            transBuffer.Dot2D(dy, transBuffer.Height, transBuffer.Width, dy.Batch, dy.Width, dw.Storage.Shape, dw);
-            Storage.Shape = shape;
-        }                              
-
-        public override void Convolution(Tensor filters, int stride, Tensor img2ColBuffer, Tensor dotBuffer, Tensor result)
-        {
-            result.Storage.AllocateMemory(GetConvolutionalShape(Storage.Shape, filters.Storage.Shape, stride, 0));
-
-            this.Im2Col(filters.Height, filters.Width, stride, img2ColBuffer);
-            filters.Dot2D(img2ColBuffer,
-                filters.Batch,
-                filters.Channels * filters.Height * filters.Width,
-                img2ColBuffer.Height,
-                img2ColBuffer.Width,
-                null,
-                dotBuffer);
-            dotBuffer.Col2Im(result.Storage.Shape, result);
-        }
-        
-        public override void ConvolutionDx
-        (
-            Tensor filters,
-            Tensor dy,
-            Tensor paddingBuffer,
-            Tensor img2ColBuffer,
-            Tensor reshapedWBuffer,
-            Tensor rotBuffer,
-            Tensor dotBuffer,
-            Tensor dx
-        )
-        {
-            dy.Pad(Width - dy.Width, paddingBuffer);
-            paddingBuffer.Im2Col(filters.Height, filters.Width, 1, img2ColBuffer);
-            filters.Rotate180(rotBuffer);
-            rotBuffer.To2DByRows(reshapedWBuffer);
-            reshapedWBuffer.Dot2D(img2ColBuffer, dotBuffer);
-            dotBuffer.ReshapeForBatches(Storage.Shape, dx);
-        }
-
-        public override void ConvolutionDw
-        (
-            Tensor filters,
-            Tensor dy,
-            Tensor dy2DBuffer,
-            Tensor dotBuffer,
-            Tensor img2ColX,
-            Tensor dw
-        )
-        {
-            dw.Storage.AllocateMemory(new Shape(filters.Batch, filters.Channels, filters.Height, filters.Width));
-            
-            dy.To2DByColumns(dy2DBuffer);
-            img2ColX.Dot2D(dy2DBuffer, dotBuffer);
-            
-            //TODO Create Transpose method with custom tensor dimensions
-            var index = 0;
-            for (int j = 0; j < dotBuffer.Width; j++)
-            {
-                for (int i = 0; i < dotBuffer.Height; i++)
-                {
-                    dw[index] = dotBuffer[i, j];
-                    index++;
-                }
-            }
-            
-        }    
-        
         public override void MaxPool(int poolSize, int stride, Tensor result, Tensor indexes)    
         {
             result.Storage.AllocateMemory(GetPoolingShape(Storage.Shape, poolSize, stride));
