@@ -2,9 +2,9 @@
 using System.Linq;
 using Network.NeuralMath;
 
-namespace Training.Metrics
+namespace Training.Metrics.Cpu
 {
-    public class R2 : IMetric
+    public class CpuR2 : IMetric
     {
         public float Evaluate(Tensor real, Tensor predicted)
         {

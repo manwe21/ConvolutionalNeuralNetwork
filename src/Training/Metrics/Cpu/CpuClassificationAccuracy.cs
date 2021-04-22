@@ -1,9 +1,9 @@
 ﻿using System;
 using Network.NeuralMath;
 
-namespace Training.Metrics
+namespace Training.Metrics.Cpu
 {
-    public class ClassificationAccuracy : IMetric
+    public class CpuClassificationAccuracy : IMetric
     {
         public float Evaluate(Tensor real, Tensor predicted)
         {

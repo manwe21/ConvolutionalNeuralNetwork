@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Network.Model;
@@ -45,8 +44,8 @@ namespace Training.Trainers
                         Iteration = this.Iteration,
                         IterationTime = sw.Elapsed,
                         ExamplesPerEpoch = ExamplesCount,
-                        Loss = Loss.Storage.Data.Average(),
-                        Accuracy = 0,//Metric.Evaluate(example.Output, Network.Output),
+                        Loss = this.Loss.Storage.Data.Average(),
+                        Accuracy = Metric?.Evaluate(example.Output, Network.Output) ?? 0,
                         EpochsCount = this.EpochsCount
                     };
                     RaiseIterationFinishedEvent(result);

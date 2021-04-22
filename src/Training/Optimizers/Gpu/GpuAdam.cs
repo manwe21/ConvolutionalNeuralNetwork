@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Network.NeuralMath;
 using Network.NeuralMath.Gpu;
-using Training.Trainers;
 
 namespace Training.Optimizers.Gpu
 {

@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Linq;
 using Network.NeuralMath;
 
-namespace Training.Metrics
+namespace Training.Metrics.Cpu
 {
-    public class MeanAbsoluteError : IMetric
+    public class CpuMeanAbsoluteError : IMetric
     {
         public float Evaluate(Tensor real, Tensor predicted)
         {
