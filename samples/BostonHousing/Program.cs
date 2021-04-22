@@ -6,9 +6,8 @@ using CsvHelper;
 using Network.Model;
 using Network.NeuralMath;
 using Network.NeuralMath.Functions.LossFunctions;
+using Training;
 using Training.Data;
-using Training.Metrics;
-using Training.Optimizers.Cpu;
 using Training.Trainers;
 using Training.Trainers.EventHandlers;
 using Training.Trainers.Settings;
@@ -111,14 +110,17 @@ namespace BostonHousing
                 .Fully(64)
                 .Relu()
                 .Fully(1);
+
+            var optimizerFactory = ComponentsFactories.OptimizerFactory;
+            var metricFactory = ComponentsFactories.MetricFactory;
             
             var trainer = new MiniBatchTrainer(examples, new MiniBatchTrainerSettings
             {
                 BatchSize = 32,
                 EpochsCount = 50,
                 LossFunction = new MeanSquaredError(),
-                Metric = new MeanAbsoluteError(),
-                Optimizer = new CpuAdam(0.001f)
+                Metric = metricFactory.CreateMAE(), //Warning: GPU metrics have not implemented yet
+                Optimizer = optimizerFactory.CreateAdam(0.001f)
             });
             
             trainer.AddEventHandler(new ConsoleLogger());
