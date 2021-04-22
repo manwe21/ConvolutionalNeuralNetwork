@@ -6,6 +6,7 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>RyzhkovCNN.Model</PackageId>
         <PackageVersion>1.0.1</PackageVersion>
+        <Authors>Alexander Ryzhkov</Authors>
     </PropertyGroup>
 
     <ItemGroup>

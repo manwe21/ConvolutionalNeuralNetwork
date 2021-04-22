@@ -5,10 +5,16 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>RyzhkovCNN.Training</PackageId>
+        <PackageVersion>1.0.1</PackageVersion>
+        <Authors>Alexander Ryzhkov</Authors>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Network\Network.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Metrics\Gpu" />
     </ItemGroup>
 
 </Project>
