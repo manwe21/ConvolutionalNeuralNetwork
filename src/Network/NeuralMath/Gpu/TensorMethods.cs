@@ -183,16 +183,18 @@ namespace Network.NeuralMath.Gpu
 
         public void Activation(CudaDeviceVariable<float> x, IFunction function, CudaDeviceVariable<float> y, TensorDescriptor desc)
         {
-            string kernelName = function switch
+            /*string kernelName = function switch
             {
                 Relu _ => "relu_forward",
                 Sigmoid _ => "sigmoid_forward",
                 Tanh _ => "tanh_forward",
                 _ => throw new ArgumentException(nameof(function))
-            };
+            };*/
             
+            var gpuExecutable = function as IGpuFunction ?? throw new ArgumentException(nameof(function));
+
             _kernelManager.LaunchKernel(
-                kernelName,
+                gpuExecutable.ForwardKernelName,
                 desc.Size,
                 0,
                 x.DevicePointer,
@@ -202,16 +204,9 @@ namespace Network.NeuralMath.Gpu
 
         public void ActivationDx(CudaDeviceVariable<float> x, IFunction function, CudaDeviceVariable<float> dy, CudaDeviceVariable<float> dx, TensorDescriptor desc)
         {
-            var kernelName = function switch
-            {
-                Relu _ => "relu_backward",
-                Sigmoid _ => "sigmoid_backward",
-                Tanh _ => "tanh_backward",
-                _ => throw new ArgumentException(nameof(function))    
-            };
-            
+            var gpuExecutable = function as IGpuFunction ?? throw new ArgumentException(nameof(function));
             _kernelManager.LaunchKernel(
-                kernelName,
+                gpuExecutable.BackwardKernelName,
                 desc.Size,
                 0,
                 x.DevicePointer,
@@ -248,16 +243,17 @@ namespace Network.NeuralMath.Gpu
         
         public void Loss(CudaDeviceVariable<float> o, CudaDeviceVariable<float> t, CudaDeviceVariable<float> loss, ILossFunction lossFunction, TensorDescriptor desc)
         {
-            var kernelName = lossFunction switch
+            /*var kernelName = lossFunction switch
             {
                 CrossEntropy _ => "cross_entropy",
                 MeanSquaredError _ => "mean_squared_error",
                 _ => throw new ArgumentException(nameof(lossFunction))
-            };
+            };*/
+            var gpuExecutable = lossFunction as IGpuFunction ?? throw new ArgumentException(nameof(lossFunction));
 
             int sizePerBatch = desc.Channels * desc.Height * desc.Width;
             _kernelManager.LaunchKernel(
-                kernelName,
+                gpuExecutable.ForwardKernelName,
                 desc.Batch,
                 sizePerBatch,
                 sizePerBatch * sizeof(float), 
@@ -269,15 +265,18 @@ namespace Network.NeuralMath.Gpu
         
         public void LossDerivative(CudaDeviceVariable<float> o, CudaDeviceVariable<float> t, CudaDeviceVariable<float> dy, ILossFunction lossFunction, TensorDescriptor desc)
         {
-            var kernelName = lossFunction switch
+            /*var kernelName = lossFunction switch
             {
                 CrossEntropy _ => "cross_entropy_dy",
                 MeanSquaredError _ => "mean_squared_dy",
                 _ => throw new ArgumentException(nameof(lossFunction))
-            };
+            };*/
+            
+            var gpuExecutable = lossFunction as IGpuFunction ?? throw new ArgumentException(nameof(lossFunction));
+
             
             _kernelManager.LaunchKernel(
-                kernelName,
+                gpuExecutable.BackwardKernelName,
                 desc.Size,
                 0,
                 o.DevicePointer,

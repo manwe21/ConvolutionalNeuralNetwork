@@ -2,8 +2,11 @@
 
 namespace Network.NeuralMath.Functions.LossFunctions
 {
-    public class MeanSquaredError : ILossFunction
+    public class MeanSquaredError : ILossFunction, IGpuFunction
     {
+        public string ForwardKernelName => "mean_squared_error";
+        public string BackwardKernelName => "mean_squared_dy";
+        
         public void Process(Tensor output, Tensor correct, Tensor loss)
         {
             var sizePerBatch = output.Size / output.Batch;
@@ -27,5 +30,6 @@ namespace Network.NeuralMath.Functions.LossFunctions
                 dy[i] = 2f / sizePerBatch * (o[i] - t[i]);
             }
         }
+        
     }
 }

@@ -5,11 +5,11 @@ namespace Network.NeuralMath
     [StructLayout(LayoutKind.Sequential)]
     public struct TensorDescriptor
     {
-        public int Batch;
-        public int Channels;
-        public int Height;
-        public int Width;
-        public int Size;
+        public readonly int Batch;
+        public readonly int Channels;
+        public readonly int Height;
+        public readonly int Width;
+        public readonly int Size;
 
         public TensorDescriptor(int batch, int channels, int height, int width, int size)
         {

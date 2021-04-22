@@ -2,8 +2,11 @@
 
 namespace Network.NeuralMath.Functions.ActivationFunctions
 {
-    public class Tanh : IFunction
+    public class Tanh : IFunction, IGpuFunction
     {
+        public string ForwardKernelName => "tanh_forward";
+        public string BackwardKernelName => "tanh_backward";
+        
         public float Process(float x)
         {
             return (MathF.Exp(x) - MathF.Exp(-x)) / (MathF.Exp(x) + MathF.Exp(-x));
@@ -13,5 +16,6 @@ namespace Network.NeuralMath.Functions.ActivationFunctions
         {
             return 1 - MathF.Pow(Process(x), 2);
         }
+        
     }
 }

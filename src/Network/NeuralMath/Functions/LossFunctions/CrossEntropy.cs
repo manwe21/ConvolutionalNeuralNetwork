@@ -3,8 +3,11 @@
 namespace Network.NeuralMath.Functions.LossFunctions
 {
     //also known as LogLoss
-    public class CrossEntropy : ILossFunction
+    public class CrossEntropy : ILossFunction, IGpuFunction
     {
+        public string ForwardKernelName => "cross_entropy";
+        public string BackwardKernelName => "cross_entropy_dy";
+        
         public void Process(Tensor output, Tensor correct, Tensor loss)
         {
             var sizePerBatch = output.Size / output.Batch;
@@ -34,5 +37,6 @@ namespace Network.NeuralMath.Functions.LossFunctions
                 dy[i] = -t[i] / o[i];
             }
         }
+        
     }
 }
