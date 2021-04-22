@@ -132,7 +132,7 @@ namespace Network.NeuralMath
         
         public void Col2Im(Shape outShape, Tensor result)
         {
-            if (outShape == null) throw new ArgumentNullException(nameof(outShape));
+            if (outShape is null) throw new ArgumentNullException(nameof(outShape));
             if (result == null) throw new ArgumentNullException(nameof(result));
             
             result.Storage.AllocateMemory(outShape);
@@ -141,7 +141,7 @@ namespace Network.NeuralMath
         
         public void Pad(int value, Tensor result)
         {
-            if (result == null) throw new ArgumentNullException(nameof(result));
+            if (result is null) throw new ArgumentNullException(nameof(result));
             
             result.Storage.AllocateMemory(GetPaddingShape(Storage.Shape, value));
             DoPad(value, result);
@@ -268,7 +268,7 @@ namespace Network.NeuralMath
         
         public void ReshapeForBatches(Shape resultShape, Tensor result)
         {
-            if (resultShape == null) throw new ArgumentNullException(nameof(resultShape));
+            if (resultShape is null) throw new ArgumentNullException(nameof(resultShape));
             if (result == null) throw new ArgumentNullException(nameof(result));
             
             result.Storage.AllocateMemory(resultShape);

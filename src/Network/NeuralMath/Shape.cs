@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
 
 namespace Network.NeuralMath
 {
@@ -40,20 +38,19 @@ namespace Network.NeuralMath
             return new Shape(1, 1, height, width);
         }
 
-        public static bool operator ==(Shape a, Shape b)
+        public override bool Equals(object obj)
         {
-            if (a is null || b is null)
+            if (obj is null)
+                return false;
+            if (!(obj is Shape shape))
                 return false;
             
-            return a.Dimensions.SequenceEqual(b.Dimensions);
+            return Dimensions.SequenceEqual(shape.Dimensions);
         }
 
-        public static bool operator !=(Shape a, Shape b)
+        public override int GetHashCode()
         {
-            if (a is null || b is null)
-                return true;
-            
-            return !a.Dimensions.SequenceEqual(b.Dimensions);
+            return HashCode.Combine(Dimensions, Size);
         }
 
         public override string ToString()

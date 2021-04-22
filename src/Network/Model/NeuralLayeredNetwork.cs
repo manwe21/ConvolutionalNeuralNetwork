@@ -50,7 +50,7 @@ namespace Network.Model
             if (!_layers.All(l => l.IsInit))
                 throw new ModelIsNotInitializedException();
             
-            if (input.Storage.Shape != InputShape)
+            if (!input.Storage.Shape.Equals(InputShape))
                 throw new ArgumentException("Input tensor has incompatible shape");
             
             var tensor = _layers[0].Forward(input);
